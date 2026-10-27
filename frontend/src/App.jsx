@@ -10,18 +10,36 @@ const emptyForm = {
   cgpa: '',
 };
 
+const emptyRegistrationProfile = {
+  name: '',
+  department: '',
+  age: '',
+  cgpa: '',
+};
+
+const emptyFeeForm = {
+  studentId: '',
+  description: '',
+  amount: '',
+  dueDate: '',
+};
+
 export default function App() {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [registrationProfile, setRegistrationProfile] = useState(emptyRegistrationProfile);
   const [user, setUser] = useState(null);
   const [students, setStudents] = useState([]);
+  const [fees, setFees] = useState([]);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
+  const [showFeeForm, setShowFeeForm] = useState(false);
+  const [feeForm, setFeeForm] = useState(emptyFeeForm);
   const [editingStudent, setEditingStudent] = useState(null);
   const [studentForm, setStudentForm] = useState(emptyForm);
   const [refresh, setRefresh] = useState(0);
@@ -70,6 +88,15 @@ export default function App() {
       .catch((e) => {
         setError(getErrorMessage(e, 'Could not load students'));
       });
+
+    api
+      .get('/fees')
+      .then(({ data }) => {
+        setFees(Array.isArray(data) ? data : []);
+      })
+      .catch((e) => {
+        setError(getErrorMessage(e, 'Could not load fee records'));
+      });
   }, [user, search, refresh]);
 
   async function submit(e) {
@@ -80,10 +107,18 @@ export default function App() {
 
     try {
       if (mode === 'register') {
-        await api.post('/auth/register', { email, password });
+        await api.post('/auth/register', {
+          email,
+          password,
+          name: registrationProfile.name.trim(),
+          department: registrationProfile.department.trim(),
+          age: Number(registrationProfile.age),
+          cgpa: Number(registrationProfile.cgpa),
+        });
         setMode('login');
         setMessage('Registration successful. Please log in.');
         setPassword('');
+        setRegistrationProfile(emptyRegistrationProfile);
       } else {
         const { data } = await api.post('/auth/login', { email, password });
         if (!data?.accessToken) {
@@ -235,6 +270,41 @@ export default function App() {
     }
   }
 
+  async function saveFee(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      await api.post('/fees', {
+        studentId: Number(feeForm.studentId),
+        description: feeForm.description.trim(),
+        amount: Number(feeForm.amount),
+        dueDate: feeForm.dueDate,
+      });
+      setShowFeeForm(false);
+      setFeeForm(emptyFeeForm);
+      setMessage('Fee record created as pending.');
+      setRefresh((previous) => previous + 1);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not create fee record'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeFeeStatus(fee, status) {
+    setError('');
+    setMessage('');
+    try {
+      await api.patch(`/fees/${fee.id}/status`, { status });
+      setMessage(`Fee marked ${status.toLowerCase()}.`);
+      setRefresh((previous) => previous + 1);
+    } catch (e) {
+      setError(getErrorMessage(e, 'Could not update fee status'));
+    }
+  }
+
   if (!user) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
@@ -258,6 +328,61 @@ export default function App() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </label>
+
+          {mode === 'register' && (
+            <>
+              <label className="block text-sm font-medium text-slate-700">
+                Student name
+                <input
+                  className="mt-1 w-full rounded-lg border p-3 outline-none focus:border-blue-500"
+                  type="text"
+                  minLength={2}
+                  required
+                  value={registrationProfile.name}
+                  onChange={(e) => setRegistrationProfile((current) => ({ ...current, name: e.target.value }))}
+                />
+              </label>
+              <label className="block text-sm font-medium text-slate-700">
+                Department
+                <input
+                  className="mt-1 w-full rounded-lg border p-3 outline-none focus:border-blue-500"
+                  type="text"
+                  minLength={2}
+                  maxLength={100}
+                  required
+                  value={registrationProfile.department}
+                  onChange={(e) => setRegistrationProfile((current) => ({ ...current, department: e.target.value }))}
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block text-sm font-medium text-slate-700">
+                  Age
+                  <input
+                    className="mt-1 w-full rounded-lg border p-3 outline-none focus:border-blue-500"
+                    type="number"
+                    min="16"
+                    max="100"
+                    required
+                    value={registrationProfile.age}
+                    onChange={(e) => setRegistrationProfile((current) => ({ ...current, age: e.target.value }))}
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-700">
+                  CGPA
+                  <input
+                    className="mt-1 w-full rounded-lg border p-3 outline-none focus:border-blue-500"
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.01"
+                    required
+                    value={registrationProfile.cgpa}
+                    onChange={(e) => setRegistrationProfile((current) => ({ ...current, cgpa: e.target.value }))}
+                  />
+                </label>
+              </div>
+            </>
+          )}
 
           <label className="block text-sm font-medium text-slate-700">
             Password
@@ -451,6 +576,135 @@ export default function App() {
             </tbody>
           </table>
         </div>
+
+        <section className="mt-8">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900">Fee transactions</h2>
+              <p className="mt-1 text-slate-500">Track each fee as pending or paid.</p>
+            </div>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFeeForm(emptyFeeForm);
+                  setShowFeeForm((shown) => !shown);
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+              >
+                {showFeeForm ? 'Cancel' : '+ Add Fee'}
+              </button>
+            )}
+          </div>
+
+          {showFeeForm && isAdmin && (
+            <form onSubmit={saveFee} className="mb-5 grid gap-4 rounded-xl border bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+              <label className="text-sm font-medium">
+                Student
+                <select
+                  className="mt-1 w-full rounded-lg border bg-white p-3"
+                  required
+                  value={feeForm.studentId}
+                  onChange={(e) => setFeeForm((current) => ({ ...current, studentId: e.target.value }))}
+                >
+                  <option value="">Select a student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>{student.name} (#{student.id})</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm font-medium">
+                Fee description
+                <input
+                  className="mt-1 w-full rounded-lg border p-3"
+                  required
+                  minLength={2}
+                  maxLength={120}
+                  value={feeForm.description}
+                  onChange={(e) => setFeeForm((current) => ({ ...current, description: e.target.value }))}
+                  placeholder="Semester fee"
+                />
+              </label>
+              <label className="text-sm font-medium">
+                Amount
+                <input
+                  className="mt-1 w-full rounded-lg border p-3"
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                  value={feeForm.amount}
+                  onChange={(e) => setFeeForm((current) => ({ ...current, amount: e.target.value }))}
+                />
+              </label>
+              <label className="text-sm font-medium">
+                Due date
+                <input
+                  className="mt-1 w-full rounded-lg border p-3"
+                  type="date"
+                  required
+                  value={feeForm.dueDate}
+                  onChange={(e) => setFeeForm((current) => ({ ...current, dueDate: e.target.value }))}
+                />
+              </label>
+              <div className="sm:col-span-2 lg:col-span-4">
+                <button
+                  type="submit"
+                  disabled={busy || !students.length}
+                  className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {busy ? 'Saving...' : 'Create pending fee'}
+                </button>
+                {!students.length && <p className="mt-2 text-sm text-amber-700">Create a student record before adding a fee.</p>}
+              </div>
+            </form>
+          )}
+
+          <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="bg-slate-100 text-slate-600">
+                <tr>
+                  {['Student', 'Fee', 'Amount', 'Due date', 'Status', 'Paid on'].map((heading) => (
+                    <th key={heading} className="whitespace-nowrap p-4 font-semibold">{heading}</th>
+                  ))}
+                  {isAdmin && <th className="whitespace-nowrap p-4">Action</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {fees.map((fee) => (
+                  <tr key={fee.id} className="border-t hover:bg-slate-50">
+                    <td className="whitespace-nowrap p-4">{fee.studentName}</td>
+                    <td className="p-4">{fee.description}</td>
+                    <td className="whitespace-nowrap p-4">{Number(fee.amount).toFixed(2)}</td>
+                    <td className="whitespace-nowrap p-4">{fee.dueDate}</td>
+                    <td className="p-4">
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${fee.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {fee.status}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap p-4">{fee.paidAt ? new Date(fee.paidAt).toLocaleDateString() : '—'}</td>
+                    {isAdmin && (
+                      <td className="whitespace-nowrap p-4">
+                        <button
+                          type="button"
+                          onClick={() => changeFeeStatus(fee, fee.status === 'PAID' ? 'PENDING' : 'PAID')}
+                          className="rounded-md border px-3 py-2 font-medium hover:bg-slate-100"
+                        >
+                          Mark {fee.status === 'PAID' ? 'pending' : 'paid'}
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+                {!fees.length && (
+                  <tr>
+                    <td colSpan={isAdmin ? 7 : 6} className="p-8 text-center text-slate-500">No fee transactions found.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
         <p className="mt-4 text-xs text-slate-500">Logged in as {user.role}.</p>
       </section>
     </main>
