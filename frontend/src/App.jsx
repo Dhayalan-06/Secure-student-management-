@@ -664,7 +664,7 @@ export default function App() {
             <table className="w-full border-collapse text-left text-sm">
               <thead className="bg-slate-100 text-slate-600">
                 <tr>
-                  {['Student', 'Fee', 'Amount', 'Due date', 'Status', 'Paid on'].map((heading) => (
+                  {['Student', 'Department', 'Fee', 'Amount', 'Due date', 'Status', 'Paid on'].map((heading) => (
                     <th key={heading} className="whitespace-nowrap p-4 font-semibold">{heading}</th>
                   ))}
                   {isAdmin && <th className="whitespace-nowrap p-4">Action</th>}
@@ -674,6 +674,7 @@ export default function App() {
                 {fees.map((fee) => (
                   <tr key={fee.id} className="border-t hover:bg-slate-50">
                     <td className="whitespace-nowrap p-4">{fee.studentName}</td>
+                    <td className="whitespace-nowrap p-4">{fee.departmentName || '—'}</td>
                     <td className="p-4">{fee.description}</td>
                     <td className="whitespace-nowrap p-4">{Number(fee.amount).toFixed(2)}</td>
                     <td className="whitespace-nowrap p-4">{fee.dueDate}</td>
@@ -698,7 +699,7 @@ export default function App() {
                 ))}
                 {!fees.length && (
                   <tr>
-                    <td colSpan={isAdmin ? 7 : 6} className="p-8 text-center text-slate-500">No fee transactions found.</td>
+                    <td colSpan={isAdmin ? 8 : 7} className="p-8 text-center text-slate-500">No fee transactions found.</td>
                   </tr>
                 )}
               </tbody>
