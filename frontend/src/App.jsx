@@ -23,7 +23,6 @@ const emptyFeeForm = {
   amount: '',
   dueDate: '',
 };
-
 export default function App() {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
