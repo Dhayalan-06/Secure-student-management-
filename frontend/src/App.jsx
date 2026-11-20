@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { api } from './services/api';
+import ResultsPanel from './ResultsPanel';
 
 const emptyForm = {
   name: '',
@@ -575,6 +576,8 @@ export default function App() {
             </tbody>
           </table>
         </div>
+
+        <ResultsPanel students={students} canEdit={canEdit} isStudent={role === 'STUDENT'} />
 
         <section className="mt-8">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
