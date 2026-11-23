@@ -6,6 +6,7 @@ describe('FeesService', () => {
   it('creates new fee records as pending', async () => {
     const student = { id: 3, name: 'Arun', email: 'arun@example.com' };
     const students = {
+      findOne: jest.fn(async () => student as any),
       findOneBy: jest.fn(async () => student as any),
     };
     const fees = {
