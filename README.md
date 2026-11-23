@@ -3,7 +3,7 @@
 Starter project: React + Vite + Tailwind CSS frontend, NestJS + TypeORM + PostgreSQL backend, JWT authentication and role-based authorization.
 
 ## Prerequisites
-- Node.js LTS (Node 20+ recommended)
+- Node.js 22.13 or newer for the frontend
 - PostgreSQL
 - npm
 
@@ -51,6 +51,12 @@ npm install
 npm run dev
 ```
 Frontend: http://localhost:5173
+
+Vite reads `frontend/.env.local`. Set `VITE_API_BASE_URL` to override the default `http://localhost:3000/api`, and set `VITE_GOOGLE_CLIENT_ID` to your public OAuth web client ID for Google sign-in.
+
+From `frontend`, run `npm run lint`, `npm run typecheck`, `npm test`, or `npm run build`. To format the source files, run `npm run format`.
+
+For iOS development on a Mac with Xcode, run `npm run ios:add` once and `npm run ios:open` to open the project. After frontend changes, run `npm run ios:sync`. Set the API URL to an HTTPS address reachable from the device before building for mobile.
 
 ## Roles
 - Admin: list/create/update/delete student records.
