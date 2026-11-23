@@ -117,11 +117,11 @@ export default function ResultsPanel({ students, canEdit, isStudent }) {
   }
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-divider bg-surface p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Semester Results</h2>
-          <p className="mt-1 text-sm text-slate-500">Enter internal and semester examination marks. Grades are calculated automatically.</p>
+          <h1 id="results-heading" tabIndex={-1} className="text-2xl font-bold text-foreground">Semester Results</h1>
+          <p className="mt-1 text-sm text-muted">Enter internal and semester examination marks. Grades are calculated automatically.</p>
         </div>
         {canEdit && (
           <button type="button" onClick={() => setShowSubjectForm((shown) => !shown)}
@@ -132,20 +132,20 @@ export default function ResultsPanel({ students, canEdit, isStudent }) {
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-foreground">
           Semester
           <select value={semester} onChange={(event) => setSemester(event.target.value)}
-            className="mt-1 w-full rounded-lg border bg-white p-3">
+            className="mt-1 w-full rounded-lg border p-3">
             {Array.from({ length: 8 }, (_, index) => String(index + 1)).map((number) => (
               <option key={number} value={number}>Semester {number}</option>
             ))}
           </select>
         </label>
         {!isStudent && (
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-foreground">
             Student
             <select value={studentId} onChange={(event) => setStudentId(event.target.value)}
-              className="mt-1 w-full rounded-lg border bg-white p-3" required>
+              className="mt-1 w-full rounded-lg border p-3" required>
               <option value="">Select a student</option>
               {students.map((student) => <option key={student.id} value={student.id}>{student.name} (#{student.id})</option>)}
             </select>
@@ -154,55 +154,55 @@ export default function ResultsPanel({ students, canEdit, isStudent }) {
       </div>
 
       {showSubjectForm && canEdit && (
-        <form onSubmit={createSubject} className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <form onSubmit={createSubject} className="mt-5 grid gap-3 rounded-xl bg-raised p-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-sm font-medium">Subject name
             <input required minLength="2" value={subjectForm.name} onChange={(event) => setSubjectForm((current) => ({ ...current, name: event.target.value }))}
-              className="mt-1 w-full rounded-lg border bg-white p-3" placeholder="Mathematics" />
+              className="mt-1 w-full rounded-lg border p-3" placeholder="Mathematics" />
           </label>
           <label className="text-sm font-medium">Subject code
             <input required minLength="2" maxLength="30" pattern="[A-Za-z0-9._-]+" value={subjectForm.code} onChange={(event) => setSubjectForm((current) => ({ ...current, code: event.target.value }))}
-              className="mt-1 w-full rounded-lg border bg-white p-3" placeholder="MAT101" />
+              className="mt-1 w-full rounded-lg border p-3" placeholder="MAT101" />
           </label>
           <label className="text-sm font-medium">Semester
             <input required type="number" min="1" max="8" value={subjectForm.semester} onChange={(event) => setSubjectForm((current) => ({ ...current, semester: event.target.value }))}
-              className="mt-1 w-full rounded-lg border bg-white p-3" />
+              className="mt-1 w-full rounded-lg border p-3" />
           </label>
           <label className="text-sm font-medium">Internal max mark
             <input required type="number" min="1" value={subjectForm.maxInternal} onChange={(event) => setSubjectForm((current) => ({ ...current, maxInternal: event.target.value }))}
-              className="mt-1 w-full rounded-lg border bg-white p-3" />
+              className="mt-1 w-full rounded-lg border p-3" />
           </label>
           <label className="text-sm font-medium">Semester exam max mark
             <input required type="number" min="1" value={subjectForm.maxSemester} onChange={(event) => setSubjectForm((current) => ({ ...current, maxSemester: event.target.value }))}
-              className="mt-1 w-full rounded-lg border bg-white p-3" />
+              className="mt-1 w-full rounded-lg border p-3" />
           </label>
-          <button type="submit" className="rounded-lg bg-slate-900 px-4 py-3 font-semibold text-white sm:col-span-2 lg:col-span-4">Save Subject</button>
+          <button type="submit" className="rounded-lg bg-secondary-action px-4 py-3 font-semibold text-white sm:col-span-2 lg:col-span-4">Save Subject</button>
         </form>
       )}
 
-      {error && <p role="alert" className="mt-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
-      {message && <p role="status" className="mt-4 rounded-lg bg-green-50 p-3 text-sm text-green-700">{message}</p>}
+      {error && <p role="alert" className="mt-4 rounded-lg bg-danger-surface p-3 text-sm text-danger-text">{error}</p>}
+      {message && <p role="status" className="mt-4 rounded-lg bg-success-surface p-3 text-sm text-success-text">{message}</p>}
 
       {isStudent && marks.length > 0 && (
-        <div className="mt-5 grid gap-3 rounded-xl bg-blue-50 p-4 sm:grid-cols-3">
-          <p><span className="block text-xs text-slate-500">Semester total</span><strong>{total} / {possible}</strong></p>
-          <p><span className="block text-xs text-slate-500">Percentage</span><strong>{overallPercentage.toFixed(2)}%</strong></p>
-          <p><span className="block text-xs text-slate-500">Overall grade</span><strong>{gradeFor(overallPercentage)}</strong></p>
+        <div className="mt-5 grid gap-3 rounded-xl bg-info-surface p-4 sm:grid-cols-3">
+          <p><span className="block text-xs text-muted">Semester total</span><strong>{total} / {possible}</strong></p>
+          <p><span className="block text-xs text-muted">Percentage</span><strong>{overallPercentage.toFixed(2)}%</strong></p>
+          <p><span className="block text-xs text-muted">Overall grade</span><strong>{gradeFor(overallPercentage)}</strong></p>
         </div>
       )}
 
       <div className="mt-5 space-y-3">
-        {loading && <p className="py-6 text-center text-slate-500">Loading results...</p>}
+        {loading && <p className="py-6 text-center text-muted">Loading results...</p>}
         {!loading && subjects.map((subject) => {
           const saved = marksBySubject.get(subject.id);
           const draft = drafts[subject.id] || { internalMark: '', semesterMark: '' };
           return (
-            <article key={subject.id} className="rounded-xl border border-slate-200 p-4">
+            <article key={subject.id} className="rounded-xl border border-divider p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-semibold text-slate-900">{subject.code} · {subject.name}</h3>
-                  <p className="text-xs text-slate-500">Internal max {subject.maxInternal} · Semester max {subject.maxSemester}</p>
+                  <h3 className="font-semibold text-foreground">{subject.code} · {subject.name}</h3>
+                  <p className="text-xs text-muted">Internal max {subject.maxInternal} · Semester max {subject.maxSemester}</p>
                 </div>
-                {saved && <span className={`rounded-full px-3 py-1 text-sm font-bold ${saved.grade === 'Fail' ? 'bg-rose-100 text-rose-700' : 'bg-green-100 text-green-700'}`}>{saved.grade}</span>}
+                {saved && <span className={`rounded-full px-3 py-1 text-sm font-bold ${saved.grade === 'Fail' ? 'bg-danger-surface text-danger-text' : 'bg-success-surface text-success-text'}`}>{saved.grade}</span>}
               </div>
               {canEdit ? (
                 <div className="mt-4 grid items-end gap-3 sm:grid-cols-3">
@@ -217,25 +217,25 @@ export default function ResultsPanel({ students, canEdit, isStudent }) {
                       className="mt-1 w-full rounded-lg border p-3" />
                   </label>
                   <button type="button" disabled={!studentId || savingId === subject.id} onClick={() => saveMark(subject)}
-                    className="rounded-lg bg-slate-900 px-4 py-3 font-semibold text-white disabled:opacity-50">
+                    className="rounded-lg bg-secondary-action px-4 py-3 font-semibold text-white disabled:opacity-50">
                     {savingId === subject.id ? 'Saving...' : saved ? 'Update Marks' : 'Save Marks'}
                   </button>
                 </div>
               ) : saved ? (
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted">
                   <span>Internal: {saved.internalMark}/{saved.maxInternal}</span>
                   <span>Semester: {saved.semesterMark}/{saved.maxSemester}</span>
                   <span>Total: {saved.total}/{Number(saved.maxInternal) + Number(saved.maxSemester)}</span>
                   <span>{Number(saved.percentage).toFixed(2)}%</span>
                 </div>
-              ) : <p className="mt-3 text-sm text-slate-500">Marks have not been entered.</p>}
-              {canEdit && saved && <p className="mt-2 text-sm text-slate-600">Total {saved.total}/{Number(saved.maxInternal) + Number(saved.maxSemester)} · {Number(saved.percentage).toFixed(2)}%</p>}
+              ) : <p className="mt-3 text-sm text-muted">Marks have not been entered.</p>}
+              {canEdit && saved && <p className="mt-2 text-sm text-muted">Total {saved.total}/{Number(saved.maxInternal) + Number(saved.maxSemester)} · {Number(saved.percentage).toFixed(2)}%</p>}
             </article>
           );
         })}
-        {!loading && !subjects.length && <p className="rounded-xl bg-slate-50 p-8 text-center text-slate-500">No subjects have been added for this semester.</p>}
+        {!loading && !subjects.length && <p className="rounded-xl bg-raised p-8 text-center text-muted">No subjects have been added for this semester.</p>}
       </div>
 
-    </section>
+    </div>
   );
 }

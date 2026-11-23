@@ -1,2 +1,241 @@
 @import "tailwindcss";
-body { margin: 0; font-family: Inter, system-ui, Arial, sans-serif; background: #f8fafc; }
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-divider: var(--divider);
+  --color-control: var(--control);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-link: var(--link);
+  --color-secondary-action: var(--secondary-action);
+  --color-info-surface: var(--info-surface);
+  --color-success-surface: var(--success-surface);
+  --color-success-text: var(--success-text);
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-text: var(--warning-text);
+  --color-danger-surface: var(--danger-surface);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-text: var(--danger-text);
+}
+
+:root {
+  color-scheme: light;
+  --page-bg: #f8fafc;
+  --surface: #ffffff;
+  --raised: #f1f5f9;
+  --divider: #e2e8f0;
+  --control: #7c8da3;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --link: #1d4ed8;
+  --focus-ring: #2563eb;
+  --secondary-action: #1e293b;
+  --info-surface: #eff6ff;
+  --success-surface: #dcfce7;
+  --success-text: #166534;
+  --warning-surface: #fef3c7;
+  --warning-hover: #fde68a;
+  --warning-text: #92400e;
+  --danger-surface: #ffe4e6;
+  --danger-hover: #fecdd3;
+  --danger-text: #9f1239;
+  --wash-start: #ebe7fe;
+  --wash-end: #ffe8dc;
+  --page-motion: 480ms;
+  --page-ease: cubic-bezier(.22, .72, .24, 1);
+  --google-blue: #4285F4;
+  --google-red: #EA4335;
+  --google-yellow: #FBBC05;
+  --google-green: #34A853;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #101826;
+  --surface: #172438;
+  --raised: #213149;
+  --divider: #31435b;
+  --control: #627791;
+  --foreground: #edf3fb;
+  --muted: #afc0d5;
+  --link: #a3c7ff;
+  --focus-ring: #8cb6ff;
+  --secondary-action: #334b69;
+  --info-surface: #1c3658;
+  --success-surface: #173b32;
+  --success-text: #9ee9bd;
+  --warning-surface: #423418;
+  --warning-hover: #54411d;
+  --warning-text: #ffda83;
+  --danger-surface: #452637;
+  --danger-hover: #582d41;
+  --danger-text: #ffb3c6;
+  --wash-start: #30294e;
+  --wash-end: #253752;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, Arial, sans-serif;
+  background: var(--page-bg);
+  color: var(--foreground);
+}
+
+@layer base {
+  *, ::before, ::after {
+    border-color: var(--divider);
+  }
+
+  input, select {
+    border-color: var(--control);
+    background-color: var(--surface);
+  }
+
+  input::placeholder {
+    color: var(--muted);
+  }
+}
+
+.workspace-header {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid var(--divider);
+  background: var(--surface);
+}
+
+.workspace-nav a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 2px solid transparent;
+  border-radius: 8px 8px 0 0;
+  padding: .5rem .75rem;
+  color: var(--muted);
+  font-size: .875rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 150ms, color 150ms, border-color 150ms;
+}
+
+.workspace-nav a:hover {
+  background-color: var(--raised);
+  color: var(--foreground);
+}
+
+.workspace-nav a[aria-current="page"] {
+  border-bottom-color: var(--focus-ring);
+  background-color: var(--info-surface);
+  color: var(--link);
+}
+
+:is(a, button, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.route-page:not([hidden]) {
+  view-transition-name: route-page;
+  background-color: var(--page-bg);
+  animation: route-enter 380ms var(--page-ease) both;
+}
+
+:root:active-view-transition .route-page {
+  animation: none;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(root) {
+  display: none;
+}
+
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(route-page) {
+  animation-duration: var(--page-motion);
+  animation-timing-function: var(--page-ease);
+}
+
+::view-transition-image-pair(route-page) {
+  background:
+    radial-gradient(ellipse at 24% 30%, var(--wash-start) 0%, transparent 62%),
+    radial-gradient(ellipse at 86% 65%, var(--wash-end) 0%, transparent 65%);
+}
+
+::view-transition-old(route-page),
+::view-transition-new(route-page) {
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(route-page) {
+  animation: route-exit 260ms var(--page-ease) both;
+}
+
+::view-transition-new(route-page) {
+  animation: route-enter var(--page-motion) var(--page-ease) both;
+}
+
+@keyframes route-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-28px); }
+}
+
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(34px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 440px) {
+  .workspace-nav a { padding-inline: .5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-nav a { transition: none; }
+  .route-page:not([hidden]) { animation: none; }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ── Login → Dashboard: zoom-through transition ──────────────────────────── */
+
+/* The full-page overlay that zooms toward you */
+@keyframes zoom-through {
+  0%   { transform: scale(1);    opacity: 1; filter: blur(0px); }
+  70%  { transform: scale(1.55); opacity: 0.4; filter: blur(3px); }
+  100% { transform: scale(2.2);  opacity: 0;   filter: blur(10px); }
+}
+
+/* Dashboard fades in while the zoom is still happening */
+@keyframes dashboard-enter {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Applied to the entire auth <main> so the BG + card all zoom together */
+.auth-zoom-exit {
+  animation: zoom-through 540ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+  transform-origin: center center;
+  will-change: transform, opacity, filter;
+}
+
+.dashboard-entering {
+  animation: dashboard-enter 400ms 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-zoom-exit,
+  .dashboard-entering { animation: none !important; }
+}
