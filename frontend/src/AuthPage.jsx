@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import LoginFeatures from './LoginFeatures';
-import LightBeamButton from './LightBeamButton';
+import InteractiveCTAButton from './InteractiveCTAButton';
+import ShiningGoogleButton from './ShiningGoogleButton';
 import { GoogleLogin } from '@react-oauth/google';
 
 /* ─── Official Google SVG Icon with Exact 4-Color CSS Palette ──────────────── */
@@ -268,16 +269,17 @@ export default function AuthPage({
                 </label>
               </div>
 
-              {/* LightBeamButton Submit button */}
+              {/* Interactive CTA Submit Button with Cursor Glow & Arrow */}
               <div className="pt-1">
-                <LightBeamButton
+                <InteractiveCTAButton
                   type="submit"
                   disabled={busy}
+                  busy={busy}
+                  busyText={mode === 'login' ? 'Logging in…' : 'Creating Account…'}
                   className="w-full"
-                  gradientColors={['#60a5fa', '#38bdf8', '#93c5fd']}
                 >
-                  {busy ? 'Please wait…' : mode === 'login' ? 'Login' : 'Create Account'}
-                </LightBeamButton>
+                  {mode === 'login' ? 'Login' : 'Create Account'}
+                </InteractiveCTAButton>
               </div>
             </form>
 
@@ -291,9 +293,8 @@ export default function AuthPage({
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-2">
-                  {/* Visual official Google SSO button with exact CSS variables */}
-                  <button
-                    type="button"
+                  {/* Shining Google Button with official 4-color gradient border & sweep shine */}
+                  <ShiningGoogleButton
                     onClick={() => {
                       const hiddenBtn = document.querySelector('[data-google-btn-wrapper] button, [data-google-btn-wrapper] [role="button"]');
                       if (hiddenBtn) {
@@ -302,11 +303,7 @@ export default function AuthPage({
                         setError('Google OAuth Client ID is not configured yet in .env.');
                       }
                     }}
-                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-700 shadow-sm transition-all duration-150 hover:bg-neutral-50 hover:border-neutral-400 active:scale-[0.99] cursor-pointer"
-                  >
-                    <GoogleIcon className="h-5 w-5 shrink-0" />
-                    <span>Sign in with Google</span>
-                  </button>
+                  />
 
                   {/* Underlying GoogleLogin for OAuth provider & test mock compatibility */}
                   <div className="hidden" data-google-btn-wrapper aria-hidden="true">
