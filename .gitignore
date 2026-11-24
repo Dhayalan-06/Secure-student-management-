@@ -1,3 +1,4 @@
+.gitignore
 node_modules/
 dist/
 .env
@@ -6,6 +7,6 @@ dist/
 coverage/
 tmp/
 *.tsbuildinfo
-DesignModulesV1
 Template Reference Prompts
 .claude/
+DesignModulesV1
