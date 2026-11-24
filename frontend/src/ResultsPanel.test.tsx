@@ -6,6 +6,8 @@ jest.mock('./services/api', () => ({ api: { get: jest.fn(), post: jest.fn() } })
 const post = api.post as jest.Mock;
 const get = api.get as jest.Mock;
 const student = { id: 14, name: 'Test Student', registrationNumber: 'REG-014' };
+const studentWithNumber = { ...student };
+const studentWithoutNumber = { id: 15, name: 'No Ticket Student', registrationNumber: null };
 const subjects = [
   { id: 1, code: 'M101', name: 'Mathematics', semester: 1, maxInternal: 20, maxSemester: 80 },
   { id: 2, code: 'E201', name: 'Electronics', semester: 2, maxInternal: 25, maxSemester: 75 },
@@ -77,4 +79,25 @@ test('lets an authorized editor enter a zero and save marks only for the verifie
   await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Marks saved.'));
   expect(post).toHaveBeenLastCalledWith('/results/marks', { studentId: 14, subjectId: 1, internalMark: 0, semesterMark: 42 });
   expect(screen.getByText('0 / 20')).toBeVisible();
+});
+
+test('student view has no hall ticket box and opens results using the registered number', async () => {
+  post.mockResolvedValue({ data: { student: studentWithNumber, marks } });
+  render(<ResultsPanel students={[studentWithNumber]} canEdit={false} isStudent />);
+  // No hall-ticket input for students
+  expect(screen.queryByLabelText('Hall ticket / registration number')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'View results' })).not.toBeInTheDocument();
+  // Results are opened automatically from the student's registration number
+  expect(post).toHaveBeenCalledWith('/results/lookup', { registrationNumber: 'REG-014' }, expect.anything());
+  const table = await screen.findByRole('table', { name: 'Semester 2 marks for Test Student' });
+  expect(within(table).getByText('B+')).toBeInTheDocument();
+});
+
+test('student view reports an error when no registration number is assigned', async () => {
+  render(<ResultsPanel students={[studentWithoutNumber]} canEdit={false} isStudent />);
+  expect(screen.queryByLabelText('Hall ticket / registration number')).not.toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Your registration number is not assigned yet. Please contact the administration.',
+  );
+  expect(post).not.toHaveBeenCalled();
 });

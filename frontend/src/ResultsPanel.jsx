@@ -17,7 +17,13 @@ function gradeFor(percentage) {
   return percentage >= 40 ? 'C' : 'Fail';
 }
 
-export default function ResultsPanel({ canEdit = false }) {
+/**
+ * @param {object} props
+ * @param {{ registrationNumber: string | null }[]} [props.students]
+ * @param {boolean} [props.canEdit]
+ * @param {boolean} [props.isStudent]
+ */
+export default function ResultsPanel({ students = [], canEdit = false, isStudent = false }) {
   const [record, setRecord] = useState(null);
   const [number, setNumber] = useState('');
   const [revealed, setRevealed] = useState(false);
@@ -26,20 +32,15 @@ export default function ResultsPanel({ canEdit = false }) {
   const request = useRef(null);
   const numberInput = useRef(null);
   const returnFocus = useRef(false);
+  const autoStarted = useRef(false);
+
+  const studentNumber = isStudent
+    ? students.find((student) => student.registrationNumber)?.registrationNumber ?? null
+    : null;
 
   useEffect(() => () => request.current?.abort(), []);
-  useEffect(() => {
-    if (!record && returnFocus.current) numberInput.current?.focus();
-  }, [record]);
 
-  async function lookup(event) {
-    event.preventDefault();
-    if (request.current) return;
-    const registrationNumber = number.trim();
-    if (!registrationNumber) {
-      setError('Enter your hall ticket or registration number.');
-      return;
-    }
+  async function performLookup(registrationNumber) {
     const controller = new AbortController();
     request.current = controller;
     setChecking(true);
@@ -63,11 +64,73 @@ export default function ResultsPanel({ canEdit = false }) {
     }
   }
 
+  async function lookup(event) {
+    event.preventDefault();
+    if (request.current) return;
+    const registrationNumber = number.trim();
+    if (!registrationNumber) {
+      setError('Enter your hall ticket or registration number.');
+      return;
+    }
+    performLookup(registrationNumber);
+  }
+
+  // Students: their registration is already on file, so open their marksheet
+  // automatically instead of asking for a hall ticket. Admin/staff keep the
+  // hall-ticket box to look up any specific student.
+  useEffect(() => {
+    if (!isStudent || autoStarted.current || checking || record) return;
+    if (students.length === 0) return; // student profile still loading
+    if (!studentNumber) {
+      setError('Your registration number is not assigned yet. Please contact the administration.');
+      autoStarted.current = true;
+      return;
+    }
+    autoStarted.current = true;
+    performLookup(studentNumber);
+  }, [isStudent, students, studentNumber, checking, record]);
+
+  useEffect(() => {
+    if (!record && returnFocus.current) numberInput.current?.focus();
+  }, [record]);
+
   if (record) {
     return <Marksheet record={record} canEdit={canEdit} close={() => {
       returnFocus.current = true;
+      autoStarted.current = false;
       setRecord(null);
     }} />;
+  }
+
+  // Student view: no hall-ticket box — results load from the registered account.
+  if (isStudent) {
+    return (
+      <div className="exam-portal">
+        <section className="exam-access">
+          <div className="exam-access-form">
+            <h2 id="results-heading" tabIndex={-1}>Semester results</h2>
+            {checking ? (
+              <p>Opening your marksheet…</p>
+            ) : error ? (
+              <>
+                <p id="exam-access-error" role="alert" className="exam-error">{error}</p>
+                <p>Your results could not be loaded. Please contact the administration.</p>
+              </>
+            ) : students.length === 0 ? (
+              <p>Loading your registration…</p>
+            ) : (
+              <>
+                <p id="exam-access-error" role="alert" className="exam-error">
+                  Your registration number is not assigned yet. Please contact the administration.
+                </p>
+                <p>Results cannot be opened without a hall ticket on your account.</p>
+              </>
+            )}
+          </div>
+          <div className="exam-library" aria-hidden="true" />
+        </section>
+      </div>
+    );
   }
 
   return (
