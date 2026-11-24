@@ -5,30 +5,6 @@ import InteractiveCTAButton from './InteractiveCTAButton';
 import ShiningGoogleButton from './ShiningGoogleButton';
 import { GoogleLogin } from '@react-oauth/google';
 
-/* ─── Official Google SVG Icon with Exact 4-Color CSS Palette ──────────────── */
-export function GoogleIcon({ className = 'h-5 w-5' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="var(--google-blue, #4285F4)"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-      />
-      <path
-        fill="var(--google-green, #34A853)"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-      />
-      <path
-        fill="var(--google-yellow, #FBBC05)"
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-      />
-      <path
-        fill="var(--google-red, #EA4335)"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-      />
-    </svg>
-  );
-}
-
 /* ─── SSM Logo ─────────────────────────────────────────────────────────────── */
 function SSMLogo({ size = 36 }) {
   return (
@@ -64,6 +40,8 @@ export default function AuthPage({
   setMessage,
   onSubmit,
   onSubmitGoogleCredential,
+  isDark,
+  onToggleTheme,
   isExiting = false,
 }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -74,30 +52,31 @@ export default function AuthPage({
   }
 
   const inputCls =
-    'w-full rounded-xl border-0 bg-neutral-100 px-4 py-3 text-sm text-neutral-800 placeholder-neutral-400 outline-none transition-all duration-150 focus:bg-white focus:ring-2 focus:ring-blue-400/70 hover:bg-neutral-200/70';
+    'w-full rounded-xl border-0 bg-raised px-4 py-3 text-base text-foreground placeholder:text-muted outline-none transition-shadow duration-150 focus:ring-2 focus:ring-blue-400/70';
 
   return (
     <main
-      className={`relative flex min-h-screen w-full items-center justify-center p-4 sm:p-6 lg:p-10 font-['Plus_Jakarta_Sans',sans-serif] overflow-hidden${isExiting ? ' auth-zoom-exit' : ''}`}
-      style={{ background: '#e8ebe4' }}
+      className={`auth-page relative flex min-h-screen w-full items-center justify-center p-4 sm:p-6 lg:p-10 font-['Plus_Jakarta_Sans',sans-serif] overflow-hidden${isExiting ? ' auth-zoom-exit' : ''}`}
+      data-campus-lighting={isDark ? 'night' : 'day'}
     >
       {/* Outer card shell */}
       <div
-        className="relative z-10 w-full max-w-[1060px] rounded-[2.5rem] shadow-[0_30px_80px_rgba(0,0,0,0.45)]"
-        style={{ background: 'rgba(255,255,255,0.97)' }}
+        className="bg-surface relative z-10 w-full max-w-[1060px] rounded-[2.5rem] shadow-[0_30px_80px_rgba(0,0,0,0.45)]"
       >
         <div className="flex flex-col md:flex-row items-stretch min-h-[580px]">
 
           {/* ── LEFT: Form ── */}
-          <div className="relative flex w-full flex-col justify-center md:w-[48%] px-8 py-10 sm:px-12 sm:py-14">
+          <div className="relative flex w-full flex-col justify-center md:w-[48%] px-8 py-10 sm:px-9 sm:py-10">
 
             {/* Logo + wordmark */}
-            <div className="mb-8 flex items-center gap-2.5">
+            <div className="mb-7 flex items-center gap-2.5 border-b border-divider pb-4">
               <SSMLogo size={34} />
-              <div className="leading-none">
-                <span className="block text-[17px] font-bold text-neutral-900 tracking-tight">SSM</span>
-                <span className="block text-[10px] font-medium text-neutral-400 tracking-widest uppercase">v.1.0.0</span>
-              </div>
+              <span className="text-sm font-semibold tracking-tight text-foreground">Secure Student Management</span>
+              <label className="auth-theme-control" title={isDark ? 'Use light mode' : 'Use dark mode'}>
+                <input type="checkbox" role="switch" aria-label="Dark mode" className="sr-only"
+                  checked={isDark} onChange={onToggleTheme} />
+                <span className="auth-theme-track" aria-hidden="true"><span className="auth-theme-orb" /></span>
+              </label>
             </div>
 
             {/* Heading */}
@@ -105,13 +84,13 @@ export default function AuthPage({
               <h1
                 id={`${mode}-heading`}
                 tabIndex={-1}
-                className="text-[30px] font-bold text-neutral-900 tracking-tight"
+                className="text-[30px] font-bold text-foreground tracking-tight"
               >
                 {mode === 'login' ? 'Login' : 'Create an account'}
               </h1>
-              <p className="mt-1 text-sm text-neutral-500">
+              <p className="mt-1 text-sm text-muted">
                 {mode === 'login'
-                  ? 'Enter your credentials to get in'
+                  ? 'Access your student records.'
                   : 'Register as a student to get started'}
               </p>
             </div>
@@ -141,10 +120,11 @@ export default function AuthPage({
               {mode === 'register' && (
                 <>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    <label htmlFor="auth-full-name" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">
                       Full name
                     </label>
                     <input
+                      id="auth-full-name"
                       className={inputCls}
                       type="text"
                       placeholder="John Doe"
@@ -155,10 +135,11 @@ export default function AuthPage({
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                    <label htmlFor="auth-department" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">
                       Department
                     </label>
                     <input
+                      id="auth-department"
                       className={inputCls}
                       type="text"
                       placeholder="Computer Science"
@@ -171,8 +152,9 @@ export default function AuthPage({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">Age</label>
+                      <label htmlFor="auth-age" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">Age</label>
                       <input
+                        id="auth-age"
                         className={inputCls}
                         type="number"
                         min="16"
@@ -184,8 +166,9 @@ export default function AuthPage({
                       />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">CGPA</label>
+                      <label htmlFor="auth-cgpa" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">CGPA</label>
                       <input
+                        id="auth-cgpa"
                         className={inputCls}
                         type="number"
                         min="0"
@@ -203,14 +186,15 @@ export default function AuthPage({
 
               {/* Email */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                <label htmlFor="auth-email" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">
                   Email
                 </label>
                 <input
+                  id="auth-email"
                   className={inputCls}
                   type="email"
                   autoComplete="email"
-                  placeholder="aimerpaix@gmail.com"
+                  placeholder="you@example.edu"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -219,11 +203,12 @@ export default function AuthPage({
 
               {/* Password */}
               <div>
-                <label className="mb-1.5 block text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                <label htmlFor="auth-password" className="mb-1.5 block text-xs font-semibold text-muted uppercase tracking-wider">
                   Password
                 </label>
                 <div className="relative">
                   <input
+                    id="auth-password"
                     className={inputCls + ' pr-11'}
                     type={showPassword ? 'text' : 'password'}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -235,10 +220,9 @@ export default function AuthPage({
                   />
                   <button
                     type="button"
-                    tabIndex={-1}
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-neutral-400 hover:text-neutral-700 focus:outline-none"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-1 text-muted hover:text-link hover:bg-raised"
                   >
                     {showPassword ? (
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +249,7 @@ export default function AuthPage({
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="h-4 w-4 cursor-pointer rounded border-neutral-300 accent-blue-700 focus:ring-0"
                   />
-                  <span className="text-sm text-neutral-600">Remember me</span>
+                  <span className="text-sm text-muted">Remember me</span>
                 </label>
               </div>
 
@@ -287,20 +271,20 @@ export default function AuthPage({
             {mode === 'login' && (
               <div className="mt-5">
                 <div className="relative my-4 flex items-center">
-                  <div className="flex-1 border-t border-neutral-200" />
-                  <span className="mx-3 text-[11px] font-medium uppercase tracking-wider text-neutral-400">or continue with</span>
-                  <div className="flex-1 border-t border-neutral-200" />
+                  <div className="flex-1 border-t border-divider" />
+                  <span className="mx-3 text-[11px] font-medium uppercase tracking-wider text-muted">or continue with</span>
+                  <div className="flex-1 border-t border-divider" />
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-2">
-                  {/* Shining Google Button with official 4-color gradient border & sweep shine */}
                   <ShiningGoogleButton
+                    disabled={busy}
                     onClick={() => {
                       const hiddenBtn = document.querySelector('[data-google-btn-wrapper] button, [data-google-btn-wrapper] [role="button"]');
                       if (hiddenBtn) {
                         hiddenBtn.click();
                       } else {
-                        setError('Google OAuth Client ID is not configured yet in .env.');
+                        setError('Google sign-in is unavailable. Please use your email and password.');
                       }
                     }}
                   />
@@ -317,15 +301,15 @@ export default function AuthPage({
             )}
 
             {/* Switch mode */}
-            <p className="mt-6 text-center text-sm text-neutral-500">
+            <p className="mt-6 text-center text-sm text-muted">
               {mode === 'login' ? (
                 <>
-                  Not a member?{' '}
+                  New to the portal?{' '}
                   <Link
                     to="/register"
                     viewTransition
                     onClick={() => { setError(''); setMessage(''); }}
-                    className="font-semibold text-blue-800 hover:underline"
+                    className="auth-link font-semibold text-link"
                   >
                     Create an account
                   </Link>
@@ -337,7 +321,7 @@ export default function AuthPage({
                     to="/"
                     viewTransition
                     onClick={() => { setError(''); setMessage(''); }}
-                    className="font-semibold text-blue-800 hover:underline"
+                    className="auth-link font-semibold text-link"
                   >
                     Sign in
                   </Link>
@@ -345,14 +329,10 @@ export default function AuthPage({
               )}
             </p>
 
-            {/* Version watermark */}
-            <p className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-neutral-400 tracking-widest select-none">
-              SSM v.1.0.0 · Secure Student Management
-            </p>
           </div>
 
           {/* ── RIGHT: Slideshow ── */}
-          <div className="hidden md:flex w-full md:w-[52%] p-2.5">
+          <div className="flex w-full min-w-0 md:w-[52%] p-2.5">
             <LoginFeatures />
           </div>
         </div>

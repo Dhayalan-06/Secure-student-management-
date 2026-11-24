@@ -1,5 +1,7 @@
 import { IsEmail, IsInt, IsNumber, IsString, Max, Min, MinLength, MaxLength, Matches } from 'class-validator';
-export class CreateStudentDto {
+import { PartialType } from '@nestjs/mapped-types';
+import { RegistrationNumberDto } from './registration-number.dto';
+export class CreateStudentDto extends PartialType(RegistrationNumberDto) {
   @IsString() @MinLength(2) name: string;
   @IsEmail() email: string;
   @IsString() @MinLength(2) @MaxLength(100) @Matches(/\S/) department: string;

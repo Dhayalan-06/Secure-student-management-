@@ -1,164 +1,95 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-const slides = [
-  ['01-student-id', 'Student ID', 'Sample student record for Ananya Rao, ID 1042.', 'Be a Part of Something', 'Beautiful'],
-  ['02-profile-details', 'Profile details', 'Ananya studies Computer Science. Her profile lists an email address and a CGPA of 8.50.', 'Everything you need,', 'One Place'],
-  ['03-fee-status', 'Fee status', 'The sample semester fee of 18,000 is pending. The library fee of 500 is paid.', 'Track Fees,', 'Effortlessly'],
-  ['04-semester-results', 'Semester results', 'Semester 1 Mathematics. Internal 22/25 and exam 63/75 give a total of 85/100 and grade A+.', 'Grades & Results,', 'At a Glance'],
+const files = [
+  {
+    image: 'arcade', title: 'Student ID', tab: 'ID', heading: 'Find your student ID.',
+    fields: [['Student ID', '#1042'], ['Name', 'Ananya Rao']],
+  },
+  {
+    image: 'library', title: 'Profile details', tab: 'Profile', heading: 'View your profile.',
+    fields: [['Ananya Rao · #1042', 'Computer Science'], ['Email', 'ananya@example.edu'], ['CGPA', '8.50']],
+  },
+  {
+    image: 'fees', title: 'Fee status', tab: 'Fees', heading: 'Check your fees.',
+    fields: [['Ananya Rao', 'Fee transactions'], ['Semester fee', '₹18,000 · Pending'], ['Library fee', '₹500 · Paid']],
+  },
+  {
+    image: 'lecture', title: 'Semester results', tab: 'Results', heading: 'See your results.',
+    fields: [['Semester 1 · MAT101', 'Mathematics'], ['Internal / Exam', '22/25 + 63/75'], ['Total / Grade', '85/100 · A+']],
+  },
 ];
+
+const motionQuery = '(prefers-reduced-motion: reduce)';
 
 export default function LoginFeatures() {
   const [current, setCurrent] = useState(0);
-  const [prev, setPrev] = useState(null);
-  const [sliding, setSliding] = useState(false);
-  const [playing, setPlaying] = useState(
-    () => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-  );
-  const timerRef = useRef(null);
-
-  function goTo(index) {
-    if (index === current || sliding) return;
-    setPrev(current);
-    setCurrent(index);
-    setSliding(true);
-    setTimeout(() => {
-      setPrev(null);
-      setSliding(false);
-    }, 700);
-  }
-
-  function next() {
-    goTo((current + 1) % slides.length);
-  }
+  const [playing, setPlaying] = useState(() => !window.matchMedia?.(motionQuery).matches);
 
   useEffect(() => {
     if (!playing) return;
-    timerRef.current = window.setInterval(next, 5000);
-    return () => window.clearInterval(timerRef.current);
-  }, [playing, current, sliding]);
+    const timer = window.setInterval(() => setCurrent((index) => (index + 1) % files.length), 5000);
+    return () => window.clearInterval(timer);
+  }, [playing]);
 
   useEffect(() => {
-    const media = window.matchMedia?.('(prefers-reduced-motion: reduce)');
-    const onChange = () => setPlaying(!media.matches);
+    const media = window.matchMedia?.(motionQuery);
+    function onChange(event) {
+      if (event.matches) setPlaying(false);
+    }
     media?.addEventListener('change', onChange);
     return () => media?.removeEventListener('change', onChange);
   }, []);
 
   return (
-    <section
-      aria-label="Student portal features"
-      className="relative flex h-full min-h-[440px] w-full flex-col overflow-hidden rounded-[1.75rem] font-['Plus_Jakarta_Sans',sans-serif]"
-      style={{
-        background: 'linear-gradient(145deg, #091224 0%, #172554 45%, #1e40af 100%)',
-      }}
-    >
-      {/* Ambient Blue / Navy Glows matching login screen theme */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-16 -right-16 h-72 w-72 rounded-full bg-blue-500/25 blur-[80px]" />
-        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-indigo-600/30 blur-[90px]" />
-        <div className="absolute top-1/2 left-1/2 h-52 w-52 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-400/15 blur-[70px]" />
-      </div>
-
-      {/* Top-right SSM badge */}
-      <div className="absolute top-4 right-4 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm ring-1 ring-white/20 shadow-lg">
-        <span className="text-[10px] font-bold text-white leading-none tracking-tight">SSM</span>
-      </div>
-
-      {/* Image stack — slide-fade transition */}
-      <div className="relative flex-1 overflow-hidden" aria-live={playing ? 'off' : 'polite'}>
-        {slides.map(([file, title, description], index) => {
-          const isActive = index === current;
-          const isPrev = index === prev;
+    <section aria-label="Student portal features" aria-roledescription="carousel"
+      className="file-preview flex w-full min-w-0 flex-col overflow-hidden rounded-[1.75rem]">
+      <div className="file-preview__stage" aria-live={playing ? 'off' : 'polite'} aria-atomic="true">
+        {files.map((file, index) => {
+          const active = current === index;
+          // Keep the preceding file on the left when autoplay wraps to the start.
+          const distance = (index - current + files.length) % files.length;
           return (
-            <div
-              key={file}
-              aria-hidden={!isActive}
-              className="absolute inset-0 will-change-transform"
-              style={{
-                transition: 'opacity 700ms cubic-bezier(0.4,0,0.2,1), transform 700ms cubic-bezier(0.4,0,0.2,1)',
-                opacity: isActive ? 1 : 0,
-                transform: isActive
-                  ? 'translateX(0%)'
-                  : isPrev
-                  ? 'translateX(-6%)'
-                  : 'translateX(6%)',
-                zIndex: isActive ? 2 : isPrev ? 1 : 0,
-              }}
+            <figure
+              key={file.image}
+              aria-hidden={!active}
+              className="file-preview__sheet"
+              data-position={active ? 'open' : distance > files.length / 2 ? 'before' : 'after'}
+              style={{ backgroundImage: `url('/login-features/${file.image}.jpg')` }}
             >
-              <img
-                src={`/login-features/${file}.png`}
-                alt={`${title}. ${description}`}
-                width="800"
-                height="1000"
-                className="h-full w-full object-cover"
-              />
-              {/* Bottom caption gradient overlay */}
-              <div
-                className="absolute inset-x-0 bottom-0 h-2/5"
-                style={{
-                  background: 'linear-gradient(to top, rgba(9,18,36,0.92) 0%, rgba(9,18,36,0.55) 55%, transparent 100%)',
-                }}
-              />
-            </div>
+              <figcaption className="file-preview__record">
+                <p className="file-preview__label">Sample record</p>
+                <h2>{file.heading}</h2>
+                <dl>
+                  {file.fields.map(([label, value]) => (
+                    <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                  ))}
+                </dl>
+              </figcaption>
+            </figure>
           );
         })}
-
-        {/* Caption */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-7 pb-5 pt-3">
-          <p className="text-[14px] font-normal text-slate-200 leading-snug">
-            {slides[current][3]}
-          </p>
-          <p className="text-[22px] font-bold text-white leading-tight tracking-tight">
-            {slides[current][4]}
-          </p>
-        </div>
       </div>
-
-      {/* Controls */}
-      <div className="relative z-20 flex items-center justify-between px-6 py-3">
-        {/* Dot indicators with accessible labels */}
-        <div className="flex items-center gap-2">
-          {slides.map(([file, title], index) => (
+      <div className="file-preview__controls">
+        <div className="flex min-w-0 flex-1" role="group" aria-label="Choose a student file">
+          {files.map((file, index) => (
             <button
-              key={file}
+              key={file.image}
               type="button"
-              aria-label={`Show ${title}`}
-              aria-current={current === index ? 'true' : undefined}
-              onClick={() => {
-                goTo(index);
-                setPlaying(false);
-              }}
-              className="group flex h-6 w-6 items-center justify-center rounded-full focus-visible:outline-white"
+              className="file-preview__tab"
+              aria-label={`Show ${file.title}`}
+              aria-current={index === current ? 'true' : undefined}
+              onClick={() => { setPlaying(false); setCurrent(index); }}
             >
-              <span
-                className="block rounded-full transition-all duration-300"
-                style={{
-                  height: '6px',
-                  width: current === index ? '22px' : '6px',
-                  background: current === index ? '#fff' : 'rgba(255,255,255,0.35)',
-                }}
-              />
+              {file.tab}
             </button>
           ))}
         </div>
-
-        {/* Play/pause */}
-        <button
-          type="button"
-          onClick={() => setPlaying((v) => !v)}
-          aria-label={playing ? 'Pause slideshow' : 'Play slideshow'}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 focus-visible:outline-white transition-colors"
-        >
-          {playing ? (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <rect x="2" y="1.5" width="3" height="9" rx="1" />
-              <rect x="7" y="1.5" width="3" height="9" rx="1" />
-            </svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-              <path d="M3 2.2l7 3.8-7 3.8V2.2z" />
-            </svg>
-          )}
+        <button type="button" className="file-preview__play"
+          onClick={() => setPlaying((value) => !value)}
+          aria-label={playing ? 'Pause slideshow' : 'Play slideshow'}>
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+            {playing ? <path d="M3 2h3v10H3zm5 0h3v10H8z" /> : <path d="m3 2 9 5-9 5z" />}
+          </svg>
         </button>
       </div>
     </section>
