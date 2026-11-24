@@ -60,6 +60,8 @@ const workspacePages = [
   },
 ];
 
+const FEE_PAGE_SIZE = 12;
+
 export default function App() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -86,6 +88,13 @@ export default function App() {
   const [showFeeForm, setShowFeeForm] = useState(false);
   const [feeForm, setFeeForm] = useState(emptyFeeForm);
   const [refresh, setRefresh] = useState(0);
+
+  // Fee pagination state
+  const [feePage, setFeePage] = useState(1);
+  const [feePageSize, setFeePageSize] = useState(FEE_PAGE_SIZE);
+  const [feeTotal, setFeeTotal] = useState(0);
+  const [feeTotalPages, setFeeTotalPages] = useState(1);
+  const [feePageRevision, setFeePageRevision] = useState(0);
 
   const role = String(user?.role || '').toUpperCase();
   const isAdmin = role === 'ADMIN';
@@ -175,11 +184,25 @@ export default function App() {
       });
 
     if (canViewFees) {
+      // Load fee totals for dashboard
       api
-        .get('/fees', { signal: controller.signal })
+        .get('/fees/totals', { signal: controller.signal })
+        .then(() => {
+          if (controller.signal.aborted) return;
+          // Dashboard uses totals from this response
+        })
+        .catch(() => {
+          // Totals are optional, don't fail the whole load
+        });
+
+      // Load paginated fee records
+      api
+        .get('/fees', { params: { page: feePage, limit: feePageSize }, signal: controller.signal })
         .then(({ data }) => {
           if (controller.signal.aborted) return;
-          setFees(Array.isArray(data) ? data : []);
+          setFees(data?.data ?? []);
+          setFeeTotal(data?.total ?? 0);
+          setFeeTotalPages(data?.totalPages ?? 1);
           setFeeStatus('ready');
         })
         .catch((e) => {
@@ -190,7 +213,15 @@ export default function App() {
     }
 
     return () => controller.abort();
-  }, [user, canViewFees, refresh]);
+  }, [user, canViewFees, refresh, feePage, feePageSize, feePageRevision]);
+
+  // Reset to page 1 when page size changes
+  function handlePageSizeChange(newSize) {
+    const size = Math.min(100, Math.max(1, Number(newSize) || FEE_PAGE_SIZE));
+    setFeePageSize(size);
+    setFeePage(1);
+    setFeePageRevision((v) => v + 1);
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -328,6 +359,42 @@ export default function App() {
     } catch (e) {
       setError(getErrorMessage(e, 'Could not update fee status'));
     }
+  }
+
+  function renderPageNumbers() {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, feePage - Math.floor(maxVisible / 2));
+    let end = Math.min(feeTotalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    if (start > 1) {
+      pages.push({ type: 'button', page: 1, label: '1', current: feePage === 1 });
+      if (start > 2) {
+        pages.push({ type: 'ellipsis' });
+      }
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push({
+        type: 'button',
+        page: i,
+        label: String(i),
+        current: i === feePage,
+      });
+    }
+
+    if (end < feeTotalPages) {
+      if (end < feeTotalPages - 1) {
+        pages.push({ type: 'ellipsis' });
+      }
+      pages.push({ type: 'button', page: feeTotalPages, label: String(feeTotalPages), current: feePage === feeTotalPages });
+    }
+
+    return pages;
   }
 
   if (checkingSession) {
@@ -484,6 +551,32 @@ export default function App() {
                   </form>
                 )}
 
+                {/* Fee Table with Pagination Toolbar */}
+                <div className="fee-pagination-toolbar">
+                  <label className="flex items-center gap-2 text-sm text-muted" htmlFor="fee-page-size">
+                    <span className="sr-only">Rows per page</span>
+                    Rows per page
+                    <input
+                      id="fee-page-size"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={feePageSize}
+                      onChange={(e) => handlePageSizeChange(e.target.value)}
+                      onBlur={(e) => handlePageSizeChange(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handlePageSizeChange(e.target.value)}
+                      className="w-20 rounded-xl border border-control bg-surface p-2 text-sm text-right focus:border-blue-500 focus:outline-none"
+                      aria-label="Rows per page"
+                    />
+                  </label>
+                  {feeTotal > 0 && (
+                    <span className="range-info text-sm text-muted whitespace-nowrap">
+                      {(feePage - 1) * feePageSize + 1}–{Math.min(feePage * feePageSize, feeTotal)} of {feeTotal}
+                    </span>
+                  )}
+                </div>
+
                 {/* Fees Table */}
                 <div className="overflow-x-auto rounded-2xl border border-divider bg-surface shadow-sm">
                   <table className="w-full border-collapse text-left text-sm">
@@ -496,7 +589,52 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-divider">
-                      {fees.map((fee) => (
+                      {feeStatus === 'loading' && (
+                        <tr>
+                          <td colSpan={isAdmin ? 8 : 7} className="p-10 text-center text-muted">
+                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center">
+                              <svg className="h-8 w-8 animate-spin text-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              <p className="font-semibold text-foreground">Loading fee records…</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {feeStatus === 'error' && (
+                        <tr>
+                          <td colSpan={isAdmin ? 8 : 7} className="p-10 text-center text-muted">
+                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center">
+                              <svg className="h-10 w-10 text-danger-text/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <p className="font-semibold text-foreground">Failed to load fee records</p>
+                              <button
+                                type="button"
+                                onClick={() => setFeePageRevision((v) => v + 1)}
+                                className="mt-2 water-bubble-btn rounded-lg border border-divider px-3 py-1.5 text-xs font-medium hover:bg-raised cursor-pointer"
+                              >
+                                Retry
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {feeStatus === 'ready' && !fees.length && (
+                        <tr>
+                          <td colSpan={isAdmin ? 8 : 7} className="p-10 text-center text-muted">
+                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center">
+                              <svg className="h-10 w-10 text-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <p className="font-semibold text-foreground">No fee transactions found</p>
+                              <p className="text-xs text-muted mt-1">There are no fee records matching your view.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {feeStatus === 'ready' && fees.map((fee) => (
                         <tr key={fee.id} className="hover:bg-raised/40 transition-colors">
                           <td className="whitespace-nowrap px-4 py-3.5 font-medium text-foreground">{fee.studentName}</td>
                           <td className="whitespace-nowrap px-4 py-3.5 text-muted">{fee.departmentName || '—'}</td>
@@ -532,22 +670,55 @@ export default function App() {
                           )}
                         </tr>
                       ))}
-                      {!fees.length && (
-                        <tr>
-                          <td colSpan={isAdmin ? 8 : 7} className="p-10 text-center text-muted">
-                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center">
-                              <svg className="h-10 w-10 text-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                              </svg>
-                              <p className="font-semibold text-foreground">No fee transactions found</p>
-                              <p className="text-xs text-muted mt-1">There are no fee records matching your view.</p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination Controls */}
+                {feeStatus === 'ready' && feeTotalPages > 1 && (
+                  <div className="fee-pagination-controls" role="navigation" aria-label="Fee ledger pagination">
+                    <button
+                      type="button"
+                      className="page-btn prev-next-btn"
+                      onClick={() => setFeePage((p) => Math.max(1, p - 1))}
+                      disabled={feePage === 1}
+                      aria-label="Previous page"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1" aria-label="Page numbers">
+                      {renderPageNumbers().map((item, idx) => {
+                        if (item.type === 'ellipsis') {
+                          return <span key={idx} className="ellipsis" aria-hidden="true">…</span>;
+                        }
+                        if (item.type === 'button') {
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              className={`page-btn ${item.current ? 'page-current' : ''}`}
+                              onClick={() => setFeePage(item.page)}
+                              aria-current={item.current ? 'page' : undefined}
+                              aria-label={`Page ${item.label}`}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        }
+                        return null;
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      className="page-btn prev-next-btn"
+                      onClick={() => setFeePage((p) => Math.min(feeTotalPages, p + 1))}
+                      disabled={feePage === feeTotalPages}
+                      aria-label="Next page"
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </section>
 
         {workspacePage.id === 'results' && (

@@ -6,6 +6,9 @@ import { Student } from '../students/student.entity';
 import { CreateFeeDto } from './dto/create-fee.dto';
 import { FeeStatus, FeeTransaction } from './fee-transaction.entity';
 
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 100;
+
 @Injectable()
 export class FeesService {
   constructor(
@@ -15,8 +18,11 @@ export class FeesService {
     private readonly students: Repository<Student>,
   ) {}
 
-  async list(user: any) {
-    const query = this.fees
+  async list(user: any, query: any) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, Number(query.limit) || DEFAULT_PAGE_SIZE));
+
+    const qb = this.fees
       .createQueryBuilder('fee')
       .leftJoinAndSelect('fee.student', 'student')
       .leftJoinAndSelect('student.department', 'department')
@@ -24,13 +30,61 @@ export class FeesService {
       .addOrderBy('fee.id', 'DESC');
 
     if (user.role === UserRole.STUDENT) {
-      query
+      qb
         .innerJoin('student.user', 'user')
         .andWhere('user.id = :userId', { userId: user.id });
     }
 
-    const records = await query.getMany();
-    return records.map((fee) => this.toResponse(fee));
+    const [records, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      data: records.map((fee) => this.toResponse(fee)),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async totals(user: any) {
+    const qb = this.fees
+      .createQueryBuilder('fee')
+      .leftJoin('fee.student', 'student');
+
+    if (user.role === UserRole.STUDENT) {
+      qb
+        .innerJoin('student.user', 'user')
+        .andWhere('user.id = :userId', { userId: user.id });
+    }
+
+    const [total, pending, paid] = await Promise.all([
+      qb.clone().getCount(),
+      qb.clone().andWhere('fee.status = :status', { status: FeeStatus.PENDING }).getCount(),
+      qb.clone().andWhere('fee.status = :status', { status: FeeStatus.PAID }).getCount(),
+    ]);
+
+    const pendingAmount = await qb
+      .clone()
+      .andWhere('fee.status = :status', { status: FeeStatus.PENDING })
+      .select('SUM(CAST(fee.amount AS DECIMAL(10,2)))', 'sum')
+      .getRawOne<{ sum: string | null }>();
+
+    const paidAmount = await qb
+      .clone()
+      .andWhere('fee.status = :status', { status: FeeStatus.PAID })
+      .select('SUM(CAST(fee.amount AS DECIMAL(10,2)))', 'sum')
+      .getRawOne<{ sum: string | null }>();
+
+    return {
+      total,
+      pending,
+      paid,
+      pendingAmount: pendingAmount?.sum ? Number(pendingAmount.sum) : 0,
+      paidAmount: paidAmount?.sum ? Number(paidAmount.sum) : 0,
+    };
   }
 
   async create(dto: CreateFeeDto) {

@@ -19,6 +19,7 @@ export default function WorkspaceHome({ user, students, total, fees, studentStat
   const status = personal ? feeStatus : studentStatus;
   const records = personal ? fees : students;
   const tableFields = personal ? ['Fee', 'Due date', 'Amount', 'Status'] : ['Student', 'Registration no.', 'Department', 'CGPA'];
+
   return (
     <section className="registry-home" aria-labelledby="home-heading">
       <header className="registry-cover">

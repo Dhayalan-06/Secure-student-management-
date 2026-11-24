@@ -6,6 +6,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -24,8 +25,14 @@ export class FeesController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.STUDENT)
-  list(@Req() request: any) {
-    return this.fees.list(request.user);
+  list(@Req() request: any, @Query() query: any) {
+    return this.fees.list(request.user, query);
+  }
+
+  @Get('totals')
+  @Roles(UserRole.ADMIN, UserRole.STUDENT)
+  totals(@Req() request: any) {
+    return this.fees.totals(request.user);
   }
 
   @Post()

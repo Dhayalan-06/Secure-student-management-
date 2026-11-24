@@ -475,3 +475,129 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .file-preview__sheet[data-position] { transition: none; transform: none; }
 }
+
+/* ── Fee Ledger Pagination ────────────────────────────────────────────── */
+.fee-pagination-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--divider);
+  background: var(--raised);
+}
+
+.fee-pagination-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.fee-pagination-toolbar input[type="number"] {
+  width: 4rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--control);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  text-align: right;
+}
+
+.fee-pagination-toolbar input[type="number"]:focus {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-color: var(--focus-ring);
+}
+
+.fee-pagination-toolbar .range-info {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.fee-pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.fee-pagination-controls .page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--control);
+  border-radius: 0.375rem;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms, border-color 150ms;
+}
+
+.fee-pagination-controls .page-btn:hover:not(:disabled) {
+  background: var(--raised);
+  border-color: var(--link);
+}
+
+.fee-pagination-controls .page-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.fee-pagination-controls .page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fee-pagination-controls .page-btn.page-current {
+  background: var(--info-surface);
+  color: var(--link);
+  border-color: var(--link);
+}
+
+.fee-pagination-controls .page-btn.page-current:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.fee-pagination-controls .ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.fee-pagination-controls .prev-next-btn {
+  min-width: auto;
+  padding: 0 0.75rem;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .fee-pagination-toolbar {
+    justify-content: center;
+  }
+  .fee-pagination-toolbar .range-info {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+}
