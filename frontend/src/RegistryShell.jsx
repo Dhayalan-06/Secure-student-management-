@@ -17,7 +17,7 @@ export default function RegistryShell({ pages, activePage, user, name, isDark, o
           </Link>)}
         </nav>
         <div className="registry-account">
-          <div className="registry-person"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><div><strong>{name}</strong><small>{role} account</small></div></div>
+          <div className="registry-person"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><div><strong>{name}</strong><small>{role} account{user.role === 'STUDENT' && ' • Student view'}</small></div></div>
           <div className="registry-actions">
             <ThemeSwitch isDark={isDark} onToggle={onTheme} aria-label="Dark mode" className="registry-theme-switch" />
             <button type="button" onClick={onLogout}>Log out</button>

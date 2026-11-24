@@ -98,11 +98,15 @@ export default function App() {
 
   const role = String(user?.role || '').toUpperCase();
   const isAdmin = role === 'ADMIN';
+  const isStudent = role === 'STUDENT';
   const canEdit = isAdmin || role === 'STAFF';
   const canViewFees = isAdmin || role === 'STUDENT';
+  const allowedPages = workspacePages.filter((page) =>
+    page.id !== 'fees' || canViewFees
+  ).filter((page) => !(isStudent && page.id === 'home'));
   const workspacePage = workspacePages.find((page) =>
-    page.path === path && (page.id !== 'fees' || canViewFees),
-  ) ?? workspacePages[0];
+    page.path === path && (page.id !== 'fees' || canViewFees) && !(isStudent && page.id === 'home'),
+  ) ?? allowedPages[0];
   const pageId = user ? workspacePage.id : mode;
   const visiblePage = checkingSession ? null : pageId;
   const previousPage = useRef(visiblePage);
@@ -160,7 +164,10 @@ export default function App() {
     if (user && path === '/fees' && !canViewFees) {
       navigate('/students', { replace: true });
     }
-  }, [user, path, canViewFees, navigate]);
+    if (user && isStudent && path === '/home') {
+      navigate('/students', { replace: true });
+    }
+  }, [user, path, canViewFees, navigate, isStudent]);
 
   useEffect(() => {
     if (!user) return;
@@ -428,7 +435,6 @@ export default function App() {
     );
   }
 
-  const allowedPages = workspacePages.filter((page) => page.id !== 'fees' || canViewFees);
   const displayName = user.name || user.email.split('@')[0];
 
   return (
