@@ -26,9 +26,36 @@
 .registry-person > span { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 50%; color: #182e42; background: #dfd3b9; font: 1.25rem Georgia, serif; }
 .registry-person div { min-width: 0; }
 .registry-person strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
-.registry-actions { display: flex; gap: .5rem; margin-top: .8rem; }
+.registry-actions { display: flex; align-items: center; gap: .5rem; margin-top: .8rem; }
 .registry-actions button { color: #d7e3ed; cursor: pointer; font-size: .75rem; padding: .5rem .65rem; border: 1px solid #496079; border-radius: 5px; }
 .registry-actions button:hover { background: #27415c; }
+.registry-theme-switch { flex: none; }
+[data-theme="dark"] .registry-theme-switch .auth-theme-track {
+  border-color: #6c9fdc;
+  background: radial-gradient(circle at 16% 30%, #d4efff 0 1px, transparent 1.4px),
+    radial-gradient(circle at 33% 62%, #91b5f4 0 .7px, transparent 1.3px),
+    linear-gradient(115deg, #061226, #153d76 54%, #67b5ff);
+  box-shadow: inset 2px 2px 5px #020a20, 1px 0 5px #599aff80;
+}
+[data-theme="dark"] .registry-theme-switch .auth-theme-orb {
+  transform: translateX(30px);
+  background: radial-gradient(circle at 76% 20%, white 0 2%, #b4d3ff 4%, transparent 15%),
+    radial-gradient(circle at 64% 28%, #7486dd, #253a91 37%, #10184b 75%, #080f31);
+  box-shadow: inset -1px 0 2px #9ec2ff, -2px 2px 5px #050921;
+}
+@media (max-width: 760px) {
+  .registry-theme-switch .auth-theme-track {
+    width: 52px;
+    height: 26px;
+  }
+  .registry-theme-switch .auth-theme-orb {
+    width: 20px;
+    height: 20px;
+  }
+  [data-theme="dark"] .registry-theme-switch .auth-theme-orb {
+    transform: translateX(26px);
+  }
+}
 .registry-shell a:focus-visible,.registry-shell button:focus-visible { outline-offset: 2px; }
 .registry-body { min-width: 0; }
 .registry-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 64px; padding-inline: clamp(16px, 3.3vw, 55px); border-bottom: 1px solid var(--divider); background: var(--surface); color: var(--muted); font-size: .79rem; }

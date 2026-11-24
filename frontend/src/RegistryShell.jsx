@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { ThemeSwitch } from './ThemeSwitch';
 
 export default function RegistryShell({ pages, activePage, user, name, isDark, onTheme, onLogout, children }) {
   const role = user.role.charAt(0) + user.role.slice(1).toLowerCase();
@@ -18,7 +19,7 @@ export default function RegistryShell({ pages, activePage, user, name, isDark, o
         <div className="registry-account">
           <div className="registry-person"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><div><strong>{name}</strong><small>{role} account</small></div></div>
           <div className="registry-actions">
-            <button type="button" onClick={onTheme}>{isDark ? 'Light mode' : 'Dark mode'}</button>
+            <ThemeSwitch isDark={isDark} onToggle={onTheme} aria-label="Dark mode" className="registry-theme-switch" />
             <button type="button" onClick={onLogout}>Log out</button>
           </div>
         </div>

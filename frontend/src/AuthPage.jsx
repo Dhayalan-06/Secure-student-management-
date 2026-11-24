@@ -4,6 +4,7 @@ import LoginFeatures from './LoginFeatures';
 import InteractiveCTAButton from './InteractiveCTAButton';
 import ShiningGoogleButton from './ShiningGoogleButton';
 import { GoogleLogin } from '@react-oauth/google';
+import { ThemeSwitch } from './ThemeSwitch';
 
 /* ─── SSM Logo ─────────────────────────────────────────────────────────────── */
 function SSMLogo({ size = 36 }) {
@@ -72,11 +73,7 @@ export default function AuthPage({
             <div className="mb-7 flex items-center gap-2.5 border-b border-divider pb-4">
               <SSMLogo size={34} />
               <span className="text-sm font-semibold tracking-tight text-foreground">Secure Student Management</span>
-              <label className="auth-theme-control" title={isDark ? 'Use light mode' : 'Use dark mode'}>
-                <input type="checkbox" role="switch" aria-label="Dark mode" className="sr-only"
-                  checked={isDark} onChange={onToggleTheme} />
-                <span className="auth-theme-track" aria-hidden="true"><span className="auth-theme-orb" /></span>
-              </label>
+              <ThemeSwitch isDark={isDark} onToggle={onToggleTheme} aria-label="Dark mode" />
             </div>
 
             {/* Heading */}

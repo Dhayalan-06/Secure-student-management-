@@ -27,6 +27,7 @@ describe('AuthPage component', () => {
     onSubmit: jest.fn((e) => e.preventDefault()),
     onSubmitGoogleCredential: jest.fn(),
     isDark: false,
+    onToggleTheme: jest.fn(),
   };
 
   it('renders login view matching the design specifications', () => {
