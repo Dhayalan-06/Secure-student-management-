@@ -1,17 +1,13 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from './services/api';
 import ResultsPanel from './ResultsPanel';
+import StudentRegister from './StudentRegister';
 import AuthPage from './AuthPage';
-import CurlyBorderCard from './CurlyBorderCard';
-
-const emptyForm = {
-  name: '',
-  email: '',
-  department: '',
-  age: '',
-  cgpa: '',
-};
+import RegistryShell from './RegistryShell';
+import WorkspaceHome from './WorkspaceHome';
+import './registry.css';
+import './results.css';
 
 const emptyRegistrationProfile = {
   name: '',
@@ -29,9 +25,13 @@ const emptyFeeForm = {
 
 const workspacePages = [
   {
+    id: 'home', path: '/home', label: 'Overview',
+    icon: <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h5v-7h4v7h5V10" strokeLinejoin="round" /></svg>,
+  },
+  {
     id: 'students',
     path: '/students',
-    label: 'All Students',
+    label: 'Student register',
     icon: (
       <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -41,7 +41,7 @@ const workspacePages = [
   {
     id: 'fees',
     path: '/fees',
-    label: 'Student Fees',
+    label: 'Fee ledger',
     icon: (
       <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -51,7 +51,7 @@ const workspacePages = [
   {
     id: 'results',
     path: '/results',
-    label: 'Semester Results',
+    label: 'Semester results',
     icon: (
       <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -59,23 +59,6 @@ const workspacePages = [
     ),
   },
 ];
-
-/* ─── SSM Header Logo ──────────────────────────────────────────────────────── */
-function SSMLogo({ size = 32 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 36 36" fill="none" aria-hidden="true" className="shrink-0">
-      <rect width="36" height="36" rx="10" fill="url(#ssm-dash-grad)" />
-      <path d="M9 24 C9 24 10.5 18 18 18 C25.5 18 27 12 27 12" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx="18" cy="18" r="2.5" fill="white" />
-      <defs>
-        <linearGradient id="ssm-dash-grad" x1="0" y1="0" x2="36" y2="36">
-          <stop offset="0%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#1e3a8a" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
 
 export default function App() {
   const { pathname } = useLocation();
@@ -90,22 +73,18 @@ export default function App() {
   const [registrationProfile, setRegistrationProfile] = useState(emptyRegistrationProfile);
   const [user, setUser] = useState(null);
   const [students, setStudents] = useState([]);
-  const [searchResults, setSearchResults] = useState(null);
   const [fees, setFees] = useState([]);
-  const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
-  const [showRecordsOverview, setShowRecordsOverview] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [studentTotal, setStudentTotal] = useState(0);
+  const [studentStatus, setStudentStatus] = useState('loading');
+  const [feeStatus, setFeeStatus] = useState('loading');
 
-  const [showForm, setShowForm] = useState(false);
   const [showFeeForm, setShowFeeForm] = useState(false);
   const [feeForm, setFeeForm] = useState(emptyFeeForm);
-  const [editingStudent, setEditingStudent] = useState(null);
-  const [studentForm, setStudentForm] = useState(emptyForm);
   const [refresh, setRefresh] = useState(0);
 
   const role = String(user?.role || '').toUpperCase();
@@ -115,7 +94,6 @@ export default function App() {
   const workspacePage = workspacePages.find((page) =>
     page.path === path && (page.id !== 'fees' || canViewFees),
   ) ?? workspacePages[0];
-  const query = search.trim();
   const pageId = user ? workspacePage.id : mode;
   const visiblePage = checkingSession ? null : pageId;
   const previousPage = useRef(visiblePage);
@@ -179,54 +157,40 @@ export default function App() {
     if (!user) return;
     const controller = new AbortController();
 
+    setStudentStatus('loading');
+    setFeeStatus('loading');
     api
       .get('/students', { params: { page: 1, limit: 100 }, signal: controller.signal })
       .then(({ data }) => {
-        if (!controller.signal.aborted) setStudents(studentRecords(data));
+        if (controller.signal.aborted) return;
+        const rows = studentRecords(data);
+        setStudents(rows);
+        setStudentTotal(data?.total ?? rows.length);
+        setStudentStatus('ready');
       })
       .catch((e) => {
-        if (!controller.signal.aborted) setError(getErrorMessage(e, 'Could not load students'));
+        if (controller.signal.aborted) return;
+        setStudentStatus('error');
+        setError(getErrorMessage(e, 'Could not load students'));
       });
 
     if (canViewFees) {
       api
         .get('/fees', { signal: controller.signal })
         .then(({ data }) => {
-          if (!controller.signal.aborted) setFees(Array.isArray(data) ? data : []);
+          if (controller.signal.aborted) return;
+          setFees(Array.isArray(data) ? data : []);
+          setFeeStatus('ready');
         })
         .catch((e) => {
-          if (!controller.signal.aborted) setError(getErrorMessage(e, 'Could not load fee records'));
+          if (controller.signal.aborted) return;
+          setFeeStatus('error');
+          setError(getErrorMessage(e, 'Could not load fee records'));
         });
     }
 
     return () => controller.abort();
   }, [user, canViewFees, refresh]);
-
-  useEffect(() => {
-    if (!user || !query) return;
-    const controller = new AbortController();
-    api.get('/students', { params: { page: 1, limit: 100, search: query }, signal: controller.signal })
-      .then(({ data }) => {
-        if (!controller.signal.aborted) setSearchResults({ query, records: studentRecords(data) });
-      })
-      .catch((e) => {
-        if (!controller.signal.aborted) {
-          setSearchResults({ query, error: getErrorMessage(e, 'Could not search students') });
-        }
-      });
-    return () => controller.abort();
-  }, [user, query, refresh]);
-
-  const currentSearch = searchResults?.query === query ? searchResults : null;
-  const visibleStudents = query ? currentSearch?.records ?? [] : students;
-
-  const totalFeeAmount = useMemo(() => {
-    return fees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
-  }, [fees]);
-
-  const paidFeeCount = useMemo(() => {
-    return fees.filter((f) => f.status === 'PAID').length;
-  }, [fees]);
 
   async function submit(e) {
     e.preventDefault();
@@ -316,112 +280,19 @@ export default function App() {
   function logout() {
     localStorage.removeItem('accessToken');
     setUser(null);
+    setStudentStatus('loading');
+    setFeeStatus('loading');
     setStudents([]);
     setFees([]);
-    setSearch('');
-    setSearchResults(null);
     setError('');
     setMessage('');
     if (!rememberMe) {
       setEmail('');
     }
     setPassword('');
-    setShowForm(false);
-    setEditingStudent(null);
     setShowFeeForm(false);
     setFeeForm(emptyFeeForm);
     navigate('/', { replace: true });
-  }
-
-  function openCreateForm() {
-    setEditingStudent(null);
-    setStudentForm(emptyForm);
-    setError('');
-    setMessage('');
-    setShowForm(true);
-  }
-
-  function openEditForm(student) {
-    if (!student) {
-      setError('Could not open this student. Please refresh and try again.');
-      return;
-    }
-
-    setEditingStudent(student);
-    setStudentForm({
-      name: student.name ?? '',
-      email: student.email ?? '',
-      department: student.department ?? '',
-      age: student.age ?? '',
-      cgpa: student.cgpa ?? '',
-    });
-    setError('');
-    setMessage('');
-    setShowForm(true);
-
-    window.setTimeout(() => {
-      document.getElementById('student-form')?.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
-        block: 'start',
-      });
-    }, 0);
-  }
-
-  function closeForm() {
-    setShowForm(false);
-    setEditingStudent(null);
-    setStudentForm(emptyForm);
-  }
-
-  function handleFormChange(e) {
-    const { name, value } = e.target;
-    setStudentForm((previous) => ({ ...previous, [name]: value }));
-  }
-
-  async function saveStudent(e) {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    setMessage('');
-
-    const payload = {
-      name: studentForm.name.trim(),
-      email: studentForm.email.trim(),
-      department: studentForm.department.trim(),
-      age: Number(studentForm.age),
-      cgpa: Number(studentForm.cgpa),
-    };
-
-    try {
-      if (editingStudent) {
-        await api.patch(`/students/${editingStudent.id}`, payload);
-        setMessage('Student updated successfully.');
-      } else {
-        await api.post('/students', payload);
-        setMessage('Student created successfully.');
-      }
-      closeForm();
-      setRefresh((previous) => previous + 1);
-    } catch (e) {
-      setError(getErrorMessage(e, 'Could not save student'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function deleteStudent(student) {
-    const confirmed = window.confirm(`Are you sure you want to delete ${student.name}?`);
-    if (!confirmed) return;
-
-    setError('');
-    setMessage('');
-    try {
-      await api.delete(`/students/${student.id}`);
-      setMessage('Student deleted successfully.');
-      setRefresh((previous) => previous + 1);
-    } catch (e) {
-      setError(getErrorMessage(e, 'Could not delete student'));
-    }
   }
 
   async function saveFee(e) {
@@ -484,6 +355,7 @@ export default function App() {
         onSubmit={submit}
         onSubmitGoogleCredential={submitGoogleCredential}
         isDark={isDark}
+        onToggleTheme={() => setIsDark((current) => !current)}
         isExiting={isExiting}
       />
     );
@@ -493,218 +365,10 @@ export default function App() {
   const displayName = user.name || user.email.split('@')[0];
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row bg-[var(--page-bg)] text-foreground dashboard-entering">
-      {/* ─── SIDEBAR NAVIGATION (Desktop: fixed left bar matching sketch) ───── */}
-      <aside className="hidden md:flex w-64 lg:w-72 shrink-0 flex-col justify-between border-r border-divider bg-surface p-5 lg:p-6 select-none">
-        <div className="space-y-6">
-          {/* SSM Brand Header */}
-          <div className="flex items-center gap-3">
-            <SSMLogo size={38} />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold tracking-tight text-foreground">SSM</span>
-                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                  v1.0.0
-                </span>
-              </div>
-              <p className="text-xs text-muted">Secure Student Mgmt</p>
-            </div>
-          </div>
-
-          {/* User Profile Card in Sidebar */}
-          <div className="rounded-xl border border-divider bg-raised/70 p-3.5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 font-semibold text-white shadow-sm">
-                {displayName.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">{displayName}</p>
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  <p className="truncate text-xs text-muted">{user.role}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sketch Navigation Links: All Students, Student Fees, Semester Results */}
-          <nav aria-label="Sidebar Workspace" className="space-y-1.5">
-            <p className="px-2 text-[11px] font-bold uppercase tracking-wider text-muted">Navigation</p>
-            {allowedPages.map((page) => {
-              const active = workspacePage.id === page.id;
-              return (
-                <Link
-                  key={page.id}
-                  to={page.path}
-                  viewTransition={workspacePage !== page}
-                  aria-current={active ? 'page' : undefined}
-                  className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-all duration-150 ${
-                    active
-                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/30'
-                      : 'text-muted hover:bg-raised hover:text-foreground'
-                  }`}
-                >
-                  <span className={active ? 'text-white' : 'text-muted group-hover:text-foreground'}>
-                    {page.icon}
-                  </span>
-                  <span>{page.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Controls: Theme Toggle & Logout */}
-        <div className="pt-6 border-t border-divider space-y-2">
-          <button
-            type="button"
-            onClick={() => setIsDark((current) => !current)}
-            className="flex w-full items-center justify-between rounded-xl border border-divider px-3.5 py-2.5 text-xs font-semibold text-foreground hover:bg-raised transition-colors cursor-pointer"
-          >
-            <span>Appearance</span>
-            <span className="rounded-md bg-raised px-2 py-1 text-[11px] text-muted">
-              {isDark ? '🌙 Dark' : '☀️ Light'}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={logout}
-            className="water-bubble-btn flex w-full items-center justify-center gap-2 rounded-xl bg-danger-surface px-3.5 py-2.5 text-xs font-semibold text-danger-text hover:bg-danger-hover transition-colors cursor-pointer"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>Log out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* ─── MOBILE TOP BAR (Responsive drawer & reading order) ─────────────── */}
-      <div className="flex md:hidden items-center justify-between border-b border-divider bg-surface px-4 py-3">
-        <div className="flex items-center gap-2.5">
-          <SSMLogo size={28} />
-          <span className="font-bold text-foreground">SSM</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsDark((c) => !c)}
-            aria-label="Toggle theme"
-            className="rounded-lg border border-divider p-2 text-foreground hover:bg-raised"
-          >
-            {isDark ? '🌙' : '☀️'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen((o) => !o)}
-            aria-label="Toggle navigation menu"
-            className="rounded-lg border border-divider p-2 text-foreground hover:bg-raised"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Dropdown Nav Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden border-b border-divider bg-surface px-4 py-3 space-y-2">
-          <div className="flex items-center justify-between pb-2 border-b border-divider">
-            <span className="text-xs text-muted">{user.email}</span>
-            <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-              {user.role}
-            </span>
-          </div>
-          <nav className="space-y-1">
-            {allowedPages.map((page) => (
-              <Link
-                key={page.id}
-                to={page.path}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold ${
-                  workspacePage.id === page.id ? 'bg-blue-600 text-white' : 'text-foreground hover:bg-raised'
-                }`}
-              >
-                {page.icon}
-                <span>{page.label}</span>
-              </Link>
-            ))}
-          </nav>
-          <button
-            type="button"
-            onClick={logout}
-            className="water-bubble-btn w-full rounded-lg bg-danger-surface py-2 text-xs font-semibold text-danger-text cursor-pointer"
-          >
-            Log out
-          </button>
-        </div>
-      )}
-
-      {/* ─── MAIN CONTENT AREA (Top Welcome Greeting + Curly Workspace) ───── */}
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Top Header matching Sketch */}
-        <header className="border-b border-divider bg-surface/80 backdrop-blur-md px-5 py-4 sm:px-8 sm:py-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
-                Welcome back, {displayName}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted">
-                Secure Student Management Dashboard · Managing {students.length} students
-              </p>
-            </div>
-
-            {/* Sketch [Records] button with water bubble hover zoom */}
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setShowRecordsOverview((prev) => !prev)}
-                className="water-bubble-btn flex items-center gap-2 rounded-xl border border-blue-500/40 bg-blue-50/80 px-4 py-2.5 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100/90 dark:border-blue-700/60 dark:bg-blue-950/60 dark:text-blue-300 dark:hover:bg-blue-900/60 cursor-pointer"
-                aria-label="View quick records overview"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span>[Records]</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Records Quick Overview Banner (Toggled by [Records] button) */}
-          {showRecordsOverview && (
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 rounded-xl border border-divider bg-raised/80 p-4 transition-all">
-              <div className="p-2">
-                <span className="block text-xs text-muted">Total Students</span>
-                <span className="text-lg font-bold text-foreground">{students.length}</span>
-              </div>
-              <div className="p-2">
-                <span className="block text-xs text-muted">Departments</span>
-                <span className="text-lg font-bold text-foreground">
-                  {new Set(students.map((s) => s.department).filter(Boolean)).size}
-                </span>
-              </div>
-              <div className="p-2">
-                <span className="block text-xs text-muted">Total Fees Value</span>
-                <span className="text-lg font-bold text-foreground">₹{totalFeeAmount.toFixed(0)}</span>
-              </div>
-              <div className="p-2">
-                <span className="block text-xs text-muted">Fees Paid Rate</span>
-                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {fees.length ? `${Math.round((paidFeeCount / fees.length) * 100)}%` : '—'}
-                </span>
-              </div>
-            </div>
-          )}
-        </header>
-
+    <RegistryShell pages={allowedPages} activePage={workspacePage} user={user} name={displayName}
+      isDark={isDark} onTheme={() => setIsDark((current) => !current)} onLogout={logout}>
         {/* Global Notifications */}
-        <div className="px-5 pt-4 sm:px-8">
+        <div>
           {message && (
             <div role="status" className="mb-4 flex items-center gap-2 rounded-xl bg-success-surface p-3.5 text-sm text-success-text shadow-sm">
               <svg className="h-4 w-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -723,191 +387,13 @@ export default function App() {
           )}
         </div>
 
-        {/* ─── ACTIVE WORKSPACE WITH DYNAMIC CURLY MOVING BORDER ─────────────── */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <CurlyBorderCard>
-            <div className="p-4 sm:p-6 lg:p-7">
-              {/* SECTION 1: ALL STUDENTS */}
-              <section className="route-page" aria-labelledby="students-heading" hidden={workspacePage.id !== 'students'}>
-                <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <h2 id="students-heading" tabIndex={-1} className="text-2xl font-bold text-foreground">
-                      All Students
-                    </h2>
-                    <p className="mt-1 text-sm text-muted">
-                      Overview of registered students and academic records.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <input
-                      className="rounded-xl border border-control bg-surface px-4 py-2.5 text-sm placeholder-muted focus:border-blue-500 focus:outline-none"
-                      placeholder="Search students..."
-                      aria-label="Search students"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
-                    {isAdmin && (
-                      <button
-                        onClick={openCreateForm}
-                        className="water-bubble-btn rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
-                      >
-                        + Create Student
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Create / Edit Student Form */}
-                {showForm && (
-                  <form id="student-form" onSubmit={saveStudent} className="mb-6 rounded-2xl border border-divider bg-raised/50 p-5 sm:p-6 shadow-sm">
-                    <h3 className="mb-4 text-lg font-bold text-foreground">
-                      {editingStudent ? 'Edit Student Details' : 'Register New Student'}
-                    </h3>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      <label className="text-sm font-medium text-foreground">
-                        Full Name
-                        <input
-                          name="name"
-                          value={studentForm.name}
-                          onChange={handleFormChange}
-                          className="mt-1 w-full rounded-xl border border-control bg-surface p-3 text-sm focus:border-blue-500 focus:outline-none"
-                          required
-                        />
-                      </label>
-                      <label className="text-sm font-medium text-foreground">
-                        Email Address
-                        <input
-                          name="email"
-                          type="email"
-                          value={studentForm.email}
-                          onChange={handleFormChange}
-                          className="mt-1 w-full rounded-xl border border-control bg-surface p-3 text-sm focus:border-blue-500 focus:outline-none"
-                          required
-                        />
-                      </label>
-                      <label className="text-sm font-medium text-foreground">
-                        Department
-                        <input
-                          name="department"
-                          value={studentForm.department}
-                          onChange={handleFormChange}
-                          className="mt-1 w-full rounded-xl border border-control bg-surface p-3 text-sm focus:border-blue-500 focus:outline-none"
-                          required
-                        />
-                      </label>
-                      <label className="text-sm font-medium text-foreground">
-                        Age
-                        <input
-                          name="age"
-                          type="number"
-                          min="1"
-                          value={studentForm.age}
-                          onChange={handleFormChange}
-                          className="mt-1 w-full rounded-xl border border-control bg-surface p-3 text-sm focus:border-blue-500 focus:outline-none"
-                          required
-                        />
-                      </label>
-                      <label className="text-sm font-medium text-foreground">
-                        CGPA
-                        <input
-                          name="cgpa"
-                          type="number"
-                          min="0"
-                          max="10"
-                          step="0.01"
-                          value={studentForm.cgpa}
-                          onChange={handleFormChange}
-                          className="mt-1 w-full rounded-xl border border-control bg-surface p-3 text-sm focus:border-blue-500 focus:outline-none"
-                          required
-                        />
-                      </label>
-                    </div>
-                    <div className="mt-5 flex flex-wrap gap-3">
-                      <button
-                        type="submit"
-                        disabled={busy}
-                        className="water-bubble-btn rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-                      >
-                        {busy ? 'Saving...' : editingStudent ? 'Save Changes' : 'Create Student'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={closeForm}
-                        className="rounded-xl border border-divider px-5 py-2.5 text-sm font-semibold text-muted hover:bg-raised cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                )}
-
-                {/* Students Table */}
-                <div className="overflow-x-auto rounded-2xl border border-divider bg-surface shadow-sm">
-                  <table className="w-full border-collapse text-left text-sm">
-                    <thead className="border-b border-divider bg-raised/60 text-xs font-semibold uppercase tracking-wider text-muted">
-                      <tr>
-                        {['ID', 'Name', 'Email', 'Department', 'Age', 'CGPA'].map((heading) => (
-                          <th key={heading} className="whitespace-nowrap px-4 py-3.5">{heading}</th>
-                        ))}
-                        {canEdit && <th className="whitespace-nowrap px-4 py-3.5">Actions</th>}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-divider">
-                      {visibleStudents.map((student, index) => (
-                        <tr key={student.id ?? index} className="hover:bg-raised/40 transition-colors">
-                          <td className="whitespace-nowrap px-4 py-3.5 font-medium text-foreground">{student.id ?? '—'}</td>
-                          <td className="whitespace-nowrap px-4 py-3.5 font-medium text-foreground">{student.name}</td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-muted">{student.email}</td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-muted">{student.department}</td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-muted">{student.age}</td>
-                          <td className="whitespace-nowrap px-4 py-3.5 font-semibold text-foreground">{student.cgpa}</td>
-                          {canEdit && (
-                            <td className="whitespace-nowrap px-4 py-3.5">
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                    openEditForm(student);
-                                  }}
-                                  className="water-bubble-btn rounded-lg bg-warning-surface px-3 py-1.5 text-xs font-semibold text-warning-text hover:bg-warning-hover cursor-pointer"
-                                >
-                                  Edit
-                                </button>
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => deleteStudent(student)}
-                                    className="water-bubble-btn rounded-lg bg-danger-surface px-3 py-1.5 text-xs font-semibold text-danger-text hover:bg-danger-hover cursor-pointer"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                      {!visibleStudents.length && (
-                        <tr>
-                          <td colSpan={canEdit ? 7 : 6} className="p-10 text-center text-muted">
-                            <div className="mx-auto flex max-w-sm flex-col items-center justify-center">
-                              <svg className="h-10 w-10 text-muted/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                              </svg>
-                              <p className="font-semibold text-foreground">No students found</p>
-                              <p className="text-xs text-muted mt-1">
-                                {currentSearch?.error ?? (query && !currentSearch ? 'Searching students…' : 'There are currently no student records in the system.')}
-                              </p>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
+        {workspacePage.id === 'home' && (
+          <WorkspaceHome user={user} students={students} total={studentTotal} fees={fees}
+            studentStatus={studentStatus} feeStatus={feeStatus} />
+        )}
+              {workspacePage.id === 'students' && (
+                <StudentRegister role={role} onRecordsChanged={() => setRefresh((v) => v + 1)} />
+              )}
               {/* SECTION 2: STUDENT FEES */}
               <section className="route-page" aria-labelledby="fees-heading" hidden={workspacePage.id !== 'fees'}>
                 <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -1064,15 +550,12 @@ export default function App() {
                 </div>
               </section>
 
-              {/* SECTION 3: SEMESTER RESULTS (Gated by Dedicated Password Form) */}
-              <section className="route-page" aria-labelledby="results-heading" hidden={workspacePage.id !== 'results'}>
-                <ResultsPanel students={students} canEdit={canEdit} isStudent={role === 'STUDENT'} />
-              </section>
-            </div>
-          </CurlyBorderCard>
-        </main>
-      </div>
-    </div>
+        {workspacePage.id === 'results' && (
+          <section aria-labelledby="results-heading">
+            <ResultsPanel students={students} canEdit={canEdit} isStudent={role === 'STUDENT'} />
+          </section>
+        )}
+    </RegistryShell>
   );
 }
 

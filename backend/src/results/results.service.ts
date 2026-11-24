@@ -9,9 +9,31 @@ import { UserRole } from '../users/user.entity';
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { SaveMarkDto } from './dto/save-mark.dto';
 
+const MARK_COLUMNS = `st.id AS "studentId", st.name AS "studentName",
+  sub.id AS "subjectId", sub.name AS "subjectName", sub.code AS "subjectCode", sub.semester,
+  sub.max_internal AS "maxInternal", sub.max_semester AS "maxSemester",
+  sm.internal_mark AS "internalMark", sm.semester_mark AS "semesterMark"`;
+
 @Injectable()
 export class ResultsService {
   constructor(private readonly dataSource: DataSource) {}
+
+  async lookup(user: { id: number; role: UserRole }, registrationNumber: string) {
+    const isStudent = user.role === UserRole.STUDENT;
+    const rows = await this.dataSource.query(
+      `SELECT ${MARK_COLUMNS}
+       FROM students st
+       LEFT JOIN student_marks sm ON sm.student_id = st.id
+       LEFT JOIN subjects sub ON sub.id = sm.subject_id
+       WHERE st.registration_number = $1 ${isStudent ? 'AND st.user_id = $2' : ''}
+       ORDER BY sub.semester, sub.name`,
+      isStudent ? [registrationNumber, user.id] : [registrationNumber],
+    );
+    if (!rows.length) throw new NotFoundException('No matching student record was found.');
+    const student = { id: rows[0].studentId, name: rows[0].studentName, registrationNumber };
+    const marks = rows.filter(row => row.subjectId != null).map(row => this.withGrade(row));
+    return { student, marks };
+  }
 
   async listSubjects(semester?: number) {
     if (semester !== undefined && (semester < 1 || semester > 8)) {
@@ -64,10 +86,7 @@ export class ResultsService {
       where.push(`st.id = $${values.length}`);
     }
     const rows = await this.dataSource.query(
-      `SELECT sm.student_id AS "studentId", st.name AS "studentName",
-              sub.id AS "subjectId", sub.name AS "subjectName", sub.code AS "subjectCode", sub.semester,
-              sub.max_internal AS "maxInternal", sub.max_semester AS "maxSemester",
-              sm.internal_mark AS "internalMark", sm.semester_mark AS "semesterMark"
+      `SELECT ${MARK_COLUMNS}
        FROM student_marks sm
        JOIN students st ON st.id = sm.student_id
        JOIN subjects sub ON sub.id = sm.subject_id
@@ -105,10 +124,7 @@ export class ResultsService {
       [dto.studentId, dto.subjectId, dto.internalMark, dto.semesterMark],
     );
     const [row] = await this.dataSource.query(
-      `SELECT sm.student_id AS "studentId", st.name AS "studentName",
-              sub.id AS "subjectId", sub.name AS "subjectName", sub.code AS "subjectCode", sub.semester,
-              sub.max_internal AS "maxInternal", sub.max_semester AS "maxSemester",
-              sm.internal_mark AS "internalMark", sm.semester_mark AS "semesterMark"
+      `SELECT ${MARK_COLUMNS}
        FROM student_marks sm
        JOIN students st ON st.id = sm.student_id
        JOIN subjects sub ON sub.id = sm.subject_id

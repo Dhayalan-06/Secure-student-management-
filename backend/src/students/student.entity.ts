@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from '../users/user.entity';
 import { Department } from '../departments/department.entity';
 import { FeeTransaction } from '../fees/fee-transaction.entity';
@@ -7,6 +7,9 @@ export class Student {
   @PrimaryGeneratedColumn() id: number;
   @Column() name: string;
   @Column({ unique: true }) email: string;
+  @Index('uq_students_registration_number', { unique: true })
+  @Column({ name: 'registration_number', type: 'varchar', length: 64, nullable: true })
+  registrationNumber: string | null;
   @Column({ type: 'int' }) age: number;
   @Column({ type: 'float', default: 0 }) cgpa: number;
   @OneToOne(() => User, user => user.studentProfile, { nullable: true, onDelete: 'SET NULL' })

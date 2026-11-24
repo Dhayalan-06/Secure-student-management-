@@ -54,6 +54,7 @@ export class StudentsService {
         `(
           LOWER(student.name) LIKE LOWER(:search)
           OR LOWER(student.email) LIKE LOWER(:search)
+          OR LOWER(student.registrationNumber) LIKE LOWER(:search)
           OR LOWER(department.name) LIKE LOWER(:search)
         )`,
         {
@@ -77,14 +78,7 @@ export class StudentsService {
       .take(limit)
       .getManyAndCount();
     return {
-      data: rows.map((s) => ({
-        id: s.id,
-        name: s.name,
-        email: s.email,
-        department: s.department?.name,
-        age: s.age,
-        cgpa: s.cgpa,
-      })),
+      data: rows.map((s) => this.publicStudent(s)),
       page,
       limit,
       total,
@@ -124,7 +118,7 @@ export class StudentsService {
         department,
         ...(account && !account.studentProfile ? { user: account } : {}),
       });
-      const savedStudent = await students.save(student);
+      const savedStudent = await this.saveProfile(students, student);
       return this.publicStudent(savedStudent);
     });
   }
@@ -133,6 +127,9 @@ export class StudentsService {
     dto: UpdateStudentDto,
     user: any,
   ) {
+    if (dto.registrationNumber !== undefined && user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only administrators can change registration numbers.');
+    }
     return this.dataSource.transaction(async (manager) => {
       const students = manager.getRepository(Student);
       const student = await students.findOne({
@@ -154,7 +151,7 @@ export class StudentsService {
         );
       }
       Object.assign(student, studentFields);
-      const updatedStudent = await students.save(student);
+      const updatedStudent = await this.saveProfile(students, student);
       return this.publicStudent(updatedStudent);
     });
   }
@@ -179,10 +176,23 @@ export class StudentsService {
       id: s.id,
       name: s.name,
       email: s.email,
+      registrationNumber: s.registrationNumber ?? null,
       department: s.department?.name,
       age: s.age,
       cgpa: s.cgpa,
     };
+  }
+
+  private async saveProfile(students: Repository<Student>, student: Student) {
+    try {
+      return await students.save(student);
+    } catch (error) {
+      if (error?.driverError?.code === '23505' &&
+          error.driverError.constraint === 'uq_students_registration_number') {
+        throw new ConflictException('This registration number is already assigned.');
+      }
+      throw error;
+    }
   }
 
   private async findOrCreateDepartment(manager: EntityManager, rawName: string) {

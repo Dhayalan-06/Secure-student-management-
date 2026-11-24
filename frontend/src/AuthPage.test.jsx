@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import AuthPage from './AuthPage';
@@ -38,10 +38,10 @@ describe('AuthPage component', () => {
 
     // Verify header and subheader
     expect(screen.getByRole('heading', { level: 1, name: 'Login' })).toBeInTheDocument();
-    expect(screen.getByText('Enter your credentials to get in')).toBeInTheDocument();
+    expect(screen.getByText('Access your student records.')).toBeInTheDocument();
 
     // Verify fields
-    expect(screen.getByPlaceholderText('aimerpaix@gmail.com')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('••••••••')).toBeInTheDocument();
 
     // Verify remember me
@@ -50,10 +50,33 @@ describe('AuthPage component', () => {
     // Verify login button
     expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
 
-    expect(screen.getByRole('img', { name: /Student ID.*1042/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Find your student ID.' })).toBeInTheDocument();
+    expect(screen.getByText('#1042')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Show Fee status' }));
-    expect(screen.getByRole('img', { name: /Fee status.*pending/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Check your fees.' })).toBeInTheDocument();
+    expect(screen.getByText('₹18,000 · Pending')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Play slideshow' })).toBeInTheDocument();
+  });
+
+  it('switches the campus between day and night while keeping the typed email', () => {
+    function LoginWithTheme() {
+      const [email, setEmail] = useState('');
+      const [isDark, setIsDark] = useState(false);
+      return <AuthPage {...defaultProps} email={email} setEmail={setEmail} isDark={isDark}
+        onToggleTheme={() => setIsDark((current) => !current)} />;
+    }
+
+    render(<BrowserRouter><LoginWithTheme /></BrowserRouter>);
+    const email = screen.getByLabelText('Email');
+    fireEvent.change(email, { target: { value: 'student@example.edu' } });
+    const themeSwitch = screen.getByRole('switch', { name: 'Dark mode' });
+    expect(screen.getByRole('main')).toHaveAttribute('data-campus-lighting', 'day');
+    fireEvent.click(themeSwitch);
+    expect(screen.getByRole('main')).toHaveAttribute('data-campus-lighting', 'night');
+    expect(screen.getByLabelText('Email')).toHaveValue('student@example.edu');
+    fireEvent.click(themeSwitch);
+    expect(screen.getByRole('main')).toHaveAttribute('data-campus-lighting', 'day');
+    expect(screen.getByLabelText('Email')).toBe(email);
   });
 
   it('toggles password visibility when the eye button is clicked', () => {
