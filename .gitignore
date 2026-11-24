@@ -8,3 +8,4 @@ tmp/
 *.tsbuildinfo
 DesignModulesV1
 Template Reference Prompts
+.claude/
