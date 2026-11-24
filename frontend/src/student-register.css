@@ -11,6 +11,18 @@
 .student-register__search:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .student-register__search input { min-width: 0; width: 15rem; max-width: 100%; font: inherit; font-size: .875rem; color: var(--foreground); border: 0; outline: 0; background: transparent; }
 .student-register__search input:focus-visible { outline: 0; }
+.student-register__page-size { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .8rem; color: var(--muted); border: 1px solid var(--control); border-radius: .45rem; font-size: .875rem; white-space: nowrap; }
+.student-register__page-size:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.student-register__page-size input { width: 3.5rem; min-width: 0; font: inherit; font-size: .875rem; color: var(--foreground); border: 0; outline: 0; background: transparent; text-align: center; }
+.student-register__page-size input:focus-visible { outline: 0; }
+.student-register__page-size-error { margin-left: .5rem; font-size: .75rem; color: var(--danger-text); min-height: 1.15rem; }
+.student-register__page-btn { min-width: 2rem; height: 2rem; padding: 0 .55rem; border: 1px solid var(--control); border-radius: .4rem; background: var(--surface); color: var(--foreground); font-size: .84rem; font-weight: 600; cursor: pointer; }
+.student-register__page-btn:hover:not(:disabled) { background: var(--raised); border-color: var(--link); }
+.student-register__page-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.student-register__page-btn:disabled { opacity: .5; cursor: not-allowed; }
+.student-register__page-btn--current { background: var(--info-surface); color: var(--link); border-color: var(--link); }
+.student-register__page-btn--current:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.student-register__ellipsis { padding: 0 .35rem; color: var(--muted); font-size: .84rem; font-weight: 600; }
 .student-register__scroll { overflow-x: auto; }
 .student-register__scroll:focus-visible { outline-offset: -3px; }
 .student-register table { width: 100%; border-collapse: collapse; text-align: left; font-size: .875rem; }
@@ -56,4 +68,7 @@
   .student-register__search { width: 100%; }
   .student-register__search input { flex: 1; }
   .student-register__fields input { font-size: 1rem; }
+  .student-register__toolbar { flex-direction: column; align-items: stretch; gap: .6rem; }
+  .student-register__page-size { width: 100%; justify-content: space-between; }
+  .student-register__page-size input { width: auto; flex: 0 0 3rem; }
 }

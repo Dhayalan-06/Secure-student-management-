@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from './services/api';
 import './student-register.css';
 
-const PAGE_SIZE = 12;
+const DEFAULT_PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 100;
 const blankStudent = { name: '', email: '', registrationNumber: '', department: '', age: '', cgpa: '' };
 const formFields = [
   { name: 'name', label: 'Full name', type: 'text', minLength: 2, autoComplete: 'name' },
@@ -23,11 +24,37 @@ function initials(name) {
   return (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
 }
 
+// Build a compact set of page links: [1, …, 4, 5, 6, …, 20]
+function renderPageNumbers(currentPage, lastPage) {
+  const pages = [];
+  const maxVisible = 5;
+  let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+  let end = Math.min(lastPage, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1);
+  }
+  if (start > 1) {
+    pages.push({ type: 'button', page: 1 });
+    if (start > 2) pages.push({ type: 'ellipsis' });
+  }
+  for (let i = start; i <= end; i++) {
+    pages.push({ type: 'button', page: i });
+  }
+  if (end < lastPage) {
+    if (end < lastPage - 1) pages.push({ type: 'ellipsis' });
+    pages.push({ type: 'button', page: lastPage });
+  }
+  return pages;
+}
+
 export default function StudentRegister({ role, onRecordsChanged }) {
   const admin = role === 'ADMIN';
   const canEdit = admin || role === 'STAFF';
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSizeInput, setPageSizeInput] = useState(String(DEFAULT_PAGE_SIZE));
+  const [pageSizeError, setPageSizeError] = useState('');
   const [revision, setRevision] = useState(0);
   const [result, setResult] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -37,19 +64,21 @@ export default function StudentRegister({ role, onRecordsChanged }) {
   const editor = useRef(null);
   const query = search.trim();
 
+  const lastPage = result?.lastPage ?? 1;
+
   useEffect(() => {
     const controller = new AbortController();
-    api.get('/students', { params: { page, limit: PAGE_SIZE, search: query || undefined }, signal: controller.signal })
+    api.get('/students', { params: { page, limit: pageSize, search: query || undefined }, signal: controller.signal })
       .then(({ data }) => {
         if (controller.signal.aborted) return;
         const records = Array.isArray(data) ? data : data.data ?? data.items ?? [];
         const total = data.total ?? records.length;
-        const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
-        if (page > lastPage) {
-          setPage(lastPage);
+        const computedLastPage = Math.max(1, Math.ceil(total / pageSize));
+        if (page > computedLastPage) {
+          setPage(computedLastPage);
           return;
         }
-        setResult({ page, query, revision, records, total, lastPage });
+        setResult({ page, query, revision, pageSize, records, total, lastPage: computedLastPage });
       })
       .catch((failure) => {
         if (!controller.signal.aborted) {
@@ -57,10 +86,33 @@ export default function StudentRegister({ role, onRecordsChanged }) {
         }
       });
     return () => controller.abort();
-  }, [page, query, revision]);
+  }, [page, pageSize, query, revision]);
 
-  const current = result?.page === page && result.query === query && result.revision === revision ? result : null;
+  const current = result?.page === page && result.query === query && result.pageSize === pageSize && result.revision === revision ? result : null;
   const records = current?.records ?? [];
+
+  function commitPageSize(next) {
+    const raw = String(next).trim();
+    // A temporarily empty field must never become a limit-0 request.
+    if (raw === '') {
+      setPageSizeError('Rows per page must be a whole number from 1 to 100.');
+      setPageSizeInput(String(pageSize));
+      return;
+    }
+    const asNumber = Number(raw);
+    if (!Number.isInteger(asNumber) || asNumber < 1 || asNumber > MAX_PAGE_SIZE) {
+      // Reject decimals, negatives, out-of-range, and malformed input.
+      setPageSizeError('Enter a whole number from 1 to 100.');
+      setPageSizeInput(String(pageSize));
+      return;
+    }
+
+    setPageSizeError('');
+    setPageSize(asNumber);
+    setPageSizeInput(String(asNumber));
+    setPage(1);
+    setRevision((v) => v + 1);
+  }
 
   function beginEdit(student) {
     setStatus('');
@@ -146,6 +198,26 @@ export default function StudentRegister({ role, onRecordsChanged }) {
             <svg aria-hidden="true" width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m13 13 4 4"/></svg>
             <input type="search" value={search} placeholder="Search student records" onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
           </label>
+          <label className="student-register__page-size">
+            <span className="sr-only">Rows per page</span>
+            Rows per page
+            <input
+              id="student-register-page-size"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              min="1"
+              max={MAX_PAGE_SIZE}
+              value={pageSizeInput}
+              aria-label="Rows per page"
+              aria-invalid={pageSizeError ? 'true' : 'false'}
+              aria-errormessage={pageSizeError ? 'student-register-page-size-error' : undefined}
+              onChange={(event) => { setPageSizeInput(event.target.value); setPageSizeError(''); }}
+              onBlur={() => commitPageSize(pageSizeInput)}
+              onKeyDown={(event) => event.key === 'Enter' && commitPageSize(pageSizeInput)}
+            />
+            {pageSizeError && <span id="student-register-page-size-error" className="student-register__page-size-error" role="alert">{pageSizeError}</span>}
+          </label>
         </div>}
         {!current && <p className="student-register__empty" role="status">Loading records…</p>}
         {current?.error && <div className="student-register__empty" role="alert">{current.error} <button className="student-register__action" type="button" onClick={() => setRevision(v => v + 1)}>Retry</button></div>}
@@ -180,12 +252,29 @@ export default function StudentRegister({ role, onRecordsChanged }) {
               </tbody>
             </table>
           </div>
-          {canEdit && <div className="student-register__footer">
-            <span>{(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + records.length} of {current.total} {current.total === 1 ? 'record' : 'records'}</span>
-            {current.lastPage > 1 && <div className="student-register__buttons" aria-label="Pagination">
-              <button type="button" className="student-register__secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-              <button type="button" className="student-register__secondary" disabled={page === current.lastPage} onClick={() => setPage(page + 1)}>Next</button>
-            </div>}
+          {canEdit && lastPage > 1 && <div className="student-register__footer" role="navigation" aria-label="Student register pagination">
+            <button type="button" className="student-register__secondary student-register__page-btn" disabled={page === 1} aria-label="Previous page" onClick={() => setPage(page - 1)}>Previous</button>
+            <div className="student-register__page-numbers" aria-label="Page numbers">
+              {renderPageNumbers(page, lastPage).map((item, idx) => {
+                if (item.type === 'ellipsis') {
+                  return <span key={idx} className="student-register__ellipsis" aria-hidden="true">…</span>;
+                }
+                const isCurrent = item.page === page;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={`student-register__page-btn${isCurrent ? ' student-register__page-btn--current' : ''}`}
+                    aria-label={`Page ${item.page}`}
+                    aria-current={isCurrent ? 'page' : undefined}
+                    onClick={() => setPage(item.page)}
+                  >
+                    {item.page}
+                  </button>
+                );
+              })}
+            </div>
+            <button type="button" className="student-register__secondary student-register__page-btn" disabled={page === lastPage} aria-label="Next page" onClick={() => setPage(page + 1)}>Next</button>
           </div>}
         </>}
       </div>
