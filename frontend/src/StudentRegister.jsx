@@ -4,14 +4,13 @@ import './student-register.css';
 
 const DEFAULT_PAGE_SIZE = 12;
 const MAX_PAGE_SIZE = 100;
-const blankStudent = { name: '', email: '', registrationNumber: '', department: '', age: '', cgpa: '' };
+const blankStudent = { name: '', email: '', registrationNumber: '', department: '', age: '' };
 const formFields = [
   { name: 'name', label: 'Full name', type: 'text', minLength: 2, autoComplete: 'name' },
   { name: 'email', label: 'Email address', type: 'email', autoComplete: 'email' },
   { name: 'registrationNumber', label: 'Registration number (optional)', type: 'text', maxLength: 64, pattern: '[A-Za-z0-9][A-Za-z0-9\\/\\-]{0,63}', title: 'Start with a letter or digit. Use letters, digits, slashes and hyphens.' },
   { name: 'department', label: 'Department', type: 'text', minLength: 2, maxLength: 100 },
   { name: 'age', label: 'Age', type: 'number', min: 16, max: 100, step: 1 },
-  { name: 'cgpa', label: 'CGPA', type: 'number', min: 0, max: 10, step: 'any' },
 ];
 
 function errorText(error, fallback) {
@@ -130,7 +129,7 @@ export default function StudentRegister({ role, onRecordsChanged }) {
     const editing = draft.id != null;
     const registrationNumber = draft.registrationNumber.trim().toUpperCase();
     const payload = {
-      name: draft.name.trim(), department: draft.department.trim(), age: Number(draft.age), cgpa: Number(draft.cgpa),
+      name: draft.name.trim(), department: draft.department.trim(), age: Number(draft.age),
       ...(admin && { email: draft.email.trim() }),
       ...(admin && (registrationNumber || editing) && { registrationNumber: registrationNumber || null }),
     };
@@ -229,7 +228,7 @@ export default function StudentRegister({ role, onRecordsChanged }) {
             <table>
               <caption className="sr-only">{canEdit ? 'Student register' : 'My student record'}</caption>
               <thead><tr>
-                {['Student', 'Student ID', 'Registration no.', 'Department', 'Age', 'CGPA', ...(canEdit ? ['Actions'] : [])].map(title => <th scope="col" key={title}>{title}</th>)}
+                {['Student', 'Student ID', 'Registration no.', 'Department', 'Age', ...(canEdit ? ['Actions'] : [])].map(title => <th scope="col" key={title}>{title}</th>)}
               </tr></thead>
               <tbody>
                 {records.map(student => (
@@ -242,7 +241,6 @@ export default function StudentRegister({ role, onRecordsChanged }) {
                     <td data-label="Registration no." className="student-register__number">{student.registrationNumber || 'Unassigned'}</td>
                     <td data-label="Department">{student.department || '—'}</td>
                     <td data-label="Age">{student.age ?? '—'}</td>
-                    <td data-label="CGPA" className="student-register__number">{student.cgpa == null ? '—' : Number(student.cgpa).toFixed(2)}</td>
                     {canEdit && <td data-label="Actions"><div className="student-register__actions">
                       <button type="button" disabled={busy} className="student-register__action" aria-label={'Edit ' + student.name} onClick={() => beginEdit(student)}>Edit</button>
                       {admin && <button type="button" disabled={busy} className="student-register__action student-register__delete" aria-label={'Delete ' + student.name} onClick={() => remove(student)}>Delete</button>}

@@ -89,6 +89,10 @@ export default function App() {
   const [feeForm, setFeeForm] = useState(emptyFeeForm);
   const [refresh, setRefresh] = useState(0);
 
+  // Students available in the Add Fee dropdown (kept separate from fee ledger pagination)
+  const [feeStudents, setFeeStudents] = useState([]);
+  const [feeStudentsStatus, setFeeStudentsStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
+
   // Fee pagination state
   const [feePage, setFeePage] = useState(1);
   const [feePageSize, setFeePageSize] = useState(FEE_PAGE_SIZE);
@@ -218,16 +222,25 @@ export default function App() {
           // Totals are optional, don't fail the whole load
         });
 
-      // Load paginated fee records
-      api
-        .get('/fees', { params: { page: feePage, limit: feePageSize }, signal: controller.signal })
-        .then(({ data }) => {
+      async function loadLedger() {
+        const limit = isStudent ? 100 : feePageSize;
+        let page = isStudent ? 1 : feePage;
+        const rows = [];
+        while (!controller.signal.aborted) {
+          const { data } = await api.get('/fees', { params: { page, limit }, signal: controller.signal });
           if (controller.signal.aborted) return;
-          setFees(data?.data ?? []);
-          setFeeTotal(data?.total ?? 0);
-          setFeeTotalPages(data?.totalPages ?? 1);
-          setFeeStatus('ready');
-        })
+          rows.push(...data.data);
+          if (!isStudent || page >= data.totalPages || !data.data.length) {
+            setFees(rows);
+            setFeeTotal(data.total);
+            setFeeTotalPages(data.totalPages);
+            setFeeStatus('ready');
+            return;
+          }
+          page += 1;
+        }
+      }
+      loadLedger()
         .catch((e) => {
           if (controller.signal.aborted) return;
           setFeeStatus('error');
@@ -237,7 +250,7 @@ export default function App() {
     }
 
     return () => controller.abort();
-  }, [user, canViewFees, refresh, feePage, feePageSize, feePageRevision]);
+  }, [user, canViewFees, isStudent, refresh, feePage, feePageSize, feePageRevision]);
 
   // Reset to page 1 when page size changes
   function handlePageSizeChange(newSize) {
@@ -348,6 +361,46 @@ export default function App() {
     setShowFeeForm(false);
     setFeeForm(emptyFeeForm);
     navigate('/', { replace: true });
+  }
+
+  async function loadFeeStudents() {
+    setFeeStudentsStatus('loading');
+    setFeeStudents([]);
+    const all = [];
+    let page = 1;
+    const limit = 100; // Matches the backend page cap; never hardcode the total student count.
+    const controller = new AbortController();
+    try {
+      for (;;) {
+        if (controller.signal.aborted) return;
+        const { data } = await api.get('/students', {
+          params: { page, limit },
+          signal: controller.signal,
+        });
+        const rows = studentRecords(data);
+        all.push(...rows);
+        const totalPages = data?.totalPages ?? Math.max(1, Math.ceil((data?.total ?? rows.length) / limit));
+        if (page >= totalPages || !rows.length) break;
+        page += 1;
+      }
+      if (controller.signal.aborted) return;
+      const seen = new Set();
+      const unique = [];
+      for (const s of all) {
+        if (!seen.has(s.id)) {
+          seen.add(s.id);
+          unique.push(s);
+        }
+      }
+      setFeeStudents(unique);
+      setFeeStudentsStatus('ready');
+    } catch (e) {
+      if (controller.signal.aborted) return;
+      setFeeStudentsStatus('error');
+      setFeeStudents([]);
+    } finally {
+      if (!controller.signal.aborted) controller.abort();
+    }
   }
 
   async function saveFee(e) {
@@ -502,7 +555,11 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         setFeeForm(emptyFeeForm);
-                        setShowFeeForm((shown) => !shown);
+                        setShowFeeForm((shown) => {
+                          if (shown) return false;
+                          loadFeeStudents();
+                          return true;
+                        });
                       }}
                       className="water-bubble-btn rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 cursor-pointer"
                     >
@@ -522,10 +579,17 @@ export default function App() {
                         onChange={(e) => setFeeForm((current) => ({ ...current, studentId: e.target.value }))}
                       >
                         <option value="">Select a student</option>
-                        {students.map((student) => (
+                        {feeStudentsStatus === 'loading' && <option disabled>Loading students…</option>}
+                        {feeStudentsStatus === 'error' && <option disabled>Failed to load students</option>}
+                        {feeStudentsStatus === 'ready' && feeStudents.map((student) => (
                           <option key={student.id} value={student.id}>{student.name} (#{student.id})</option>
                         ))}
                       </select>
+                      {feeStudentsStatus === 'error' && (
+                        <button type="button" onClick={loadFeeStudents} className="mt-1 water-bubble-btn rounded-lg border border-divider px-3 py-1 text-xs font-medium hover:bg-raised cursor-pointer">
+                          Retry
+                        </button>
+                      )}
                     </label>
                     <label className="text-sm font-medium text-foreground">
                       Fee Description
@@ -577,7 +641,7 @@ export default function App() {
                 )}
 
                 {/* Fee Table with Pagination Toolbar */}
-                <div className="fee-pagination-toolbar">
+                {isAdmin && <div className="fee-pagination-toolbar">
                   <label className="flex items-center gap-2 text-sm text-muted" htmlFor="fee-page-size">
                     <span className="sr-only">Rows per page</span>
                     Rows per page
@@ -600,7 +664,7 @@ export default function App() {
                       {(feePage - 1) * feePageSize + 1}–{Math.min(feePage * feePageSize, feeTotal)} of {feeTotal}
                     </span>
                   )}
-                </div>
+                </div>}
 
                 {/* Fees Table */}
                 <div className="overflow-x-auto rounded-2xl border border-divider bg-surface shadow-sm">
@@ -700,7 +764,7 @@ export default function App() {
                 </div>
 
                 {/* Pagination Controls */}
-                {feeStatus === 'ready' && feeTotalPages > 1 && (
+                {isAdmin && feeStatus === 'ready' && feeTotalPages > 1 && (
                   <div className="fee-pagination-controls" role="navigation" aria-label="Fee ledger pagination">
                     <button
                       type="button"

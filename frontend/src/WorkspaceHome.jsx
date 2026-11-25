@@ -18,7 +18,7 @@ export default function WorkspaceHome({ user, students, total, fees, studentStat
   const feeReady = feeStatus === 'ready';
   const status = personal ? feeStatus : studentStatus;
   const records = personal ? fees : students;
-  const tableFields = personal ? ['Fee', 'Due date', 'Amount', 'Status'] : ['Student', 'Registration no.', 'Department', 'CGPA'];
+  const tableFields = personal ? ['Fee', 'Due date', 'Amount', 'Status'] : ['Student', 'Registration no.', 'Department'];
 
   return (
     <section className="registry-home" aria-labelledby="home-heading">
@@ -50,8 +50,8 @@ export default function WorkspaceHome({ user, students, total, fees, studentStat
               <thead><tr>{tableFields.map((field) => <th key={field} scope="col">{field}</th>)}</tr></thead>
               <tbody>{status === 'ready' && records.slice(0, 5).map((record) => personal ?
                 <tr key={record.id}><th scope="row">{record.description}</th><td>{dateFormat.format(new Date(record.dueDate.slice(0, 10) + 'T12:00:00'))}</td><td>{amounts.format(record.amount)}</td><td><span className={record.status === 'PAID' ? 'registry-paid' : 'registry-pending'}>{record.status === 'PAID' ? 'Paid' : 'Pending'}</span></td></tr> :
-                <tr key={record.id}><th scope="row">{record.name}<small>{record.email}</small></th><td>{record.registrationNumber || 'Unassigned'}</td><td>{record.department || '—'}</td><td>{record.cgpa != null ? Number(record.cgpa).toFixed(2) : '—'}</td></tr>)}
-                {(status !== 'ready' || !records.length) && <tr><td colSpan={4} className="registry-empty">{status === 'error' ? 'Records could not be loaded.' : status !== 'ready' ? 'Loading records…' : personal ? 'No fees have been recorded for your account.' : 'No students have been registered yet.'}</td></tr>}
+                <tr key={record.id}><th scope="row">{record.name}<small>{record.email}</small></th><td>{record.registrationNumber || 'Unassigned'}</td><td>{record.department || '—'}</td></tr>)}
+                {(status !== 'ready' || !records.length) && <tr><td colSpan={personal ? 4 : 3} className="registry-empty">{status === 'error' ? 'Records could not be loaded.' : status !== 'ready' ? 'Loading records…' : personal ? 'No fees have been recorded for your account.' : 'No students have been registered yet.'}</td></tr>}
               </tbody>
             </table>
           </div>
