@@ -1,0 +1,10 @@
+{
+  "appId": "com.securestudentmanagement.app",
+  "appName": "Student Management",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
