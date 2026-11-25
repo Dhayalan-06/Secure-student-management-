@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import LoginFeatures from './LoginFeatures';
 import InteractiveCTAButton from './InteractiveCTAButton';
-import ShiningGoogleButton from './ShiningGoogleButton';
 import { GoogleLogin } from '@react-oauth/google';
 import { ThemeSwitch } from './ThemeSwitch';
 
@@ -274,25 +273,11 @@ export default function AuthPage({
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <ShiningGoogleButton
-                    disabled={busy}
-                    onClick={() => {
-                      const hiddenBtn = document.querySelector('[data-google-btn-wrapper] button, [data-google-btn-wrapper] [role="button"]');
-                      if (hiddenBtn) {
-                        hiddenBtn.click();
-                      } else {
-                        setError('Google sign-in is unavailable. Please use your email and password.');
-                      }
-                    }}
+                  <GoogleLogin
+                    text="continue_with"
+                    onSuccess={onSubmitGoogleCredential}
+                    onError={() => setError('Google sign-in failed. Please try again.')}
                   />
-
-                  {/* Underlying GoogleLogin for OAuth provider & test mock compatibility */}
-                  <div className="hidden" data-google-btn-wrapper aria-hidden="true">
-                    <GoogleLogin
-                      onSuccess={onSubmitGoogleCredential}
-                      onError={() => setError('Google sign-in failed. Please try again.')}
-                    />
-                  </div>
                 </div>
               </div>
             )}

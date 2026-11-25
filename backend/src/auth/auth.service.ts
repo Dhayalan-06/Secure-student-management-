@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  ServiceUnavailableException,
   UnauthorizedException,
   OnModuleInit,
 } from '@nestjs/common';
@@ -160,8 +161,22 @@ export class AuthService implements OnModuleInit {
         audience: clientId,
       });
       payload = ticket.getPayload();
-    } catch {
-      throw new UnauthorizedException('Google sign-in token is invalid or expired.');
+    } catch (error) {
+      // Library errors can contain the credential. Only expose fixed messages.
+      const reason = error instanceof Error ? error.message : '';
+      if (reason.startsWith('Failed to retrieve verification certificates')) {
+        throw new ServiceUnavailableException('The server could not fetch Google’s verification keys. Please retry shortly.');
+      }
+      if (reason.startsWith('Wrong recipient')) {
+        throw new UnauthorizedException('Google issued this credential for a different client ID. Check the frontend and API configurations.');
+      }
+      if (reason.startsWith('Token used too late')) {
+        throw new UnauthorizedException('Your Google credential expired. Start Google sign-in again.');
+      }
+      if (/^(Token used too early|Expiration time too far in future)/.test(reason)) {
+        throw new UnauthorizedException('Google credential timing is outside the accepted window. Check the API server clock.');
+      }
+      throw new UnauthorizedException('The API could not verify the Google credential. Start Google sign-in again.');
     }
 
     if (!payload?.email || payload.email_verified !== true) {

@@ -127,14 +127,29 @@ export default function App() {
     return Array.isArray(msg) ? msg.join(', ') : msg || fallback;
   }
 
+  useEffect(() => {
+    function handleSessionExpired() {
+      setUser(null);
+      setStudents([]);
+      setFees([]);
+      setError('Your session expired. Please sign in again.');
+      navigate('/', { replace: true });
+    }
+    window.addEventListener('student-session-expired', handleSessionExpired);
+    return () => window.removeEventListener('student-session-expired', handleSessionExpired);
+  }, [navigate]);
+
   async function loadMe(signal) {
     try {
       const { data } = await api.get('/auth/me', { signal });
       if (!signal?.aborted) setUser(data.user ?? data);
-    } catch {
+    } catch (e) {
       if (signal?.aborted) return;
       localStorage.removeItem('accessToken');
       setUser(null);
+      if (e?.response?.status === 401) {
+        setError('Your session expired. Please sign in again.');
+      }
     }
   }
 
@@ -187,6 +202,7 @@ export default function App() {
       .catch((e) => {
         if (controller.signal.aborted) return;
         setStudentStatus('error');
+        if (e?.response?.status === 401) return;
         setError(getErrorMessage(e, 'Could not load students'));
       });
 
@@ -215,6 +231,7 @@ export default function App() {
         .catch((e) => {
           if (controller.signal.aborted) return;
           setFeeStatus('error');
+          if (e?.response?.status === 401) return;
           setError(getErrorMessage(e, 'Could not load fee records'));
         });
     }
@@ -350,6 +367,7 @@ export default function App() {
       setMessage('Fee record created as pending.');
       setRefresh((previous) => previous + 1);
     } catch (e) {
+      if (e?.response?.status === 401 && !localStorage.getItem('accessToken')) return;
       setError(getErrorMessage(e, 'Could not create fee record'));
     } finally {
       setBusy(false);
@@ -364,6 +382,7 @@ export default function App() {
       setMessage(`Fee marked ${status.toLowerCase()}.`);
       setRefresh((previous) => previous + 1);
     } catch (e) {
+      if (e?.response?.status === 401 && !localStorage.getItem('accessToken')) return;
       setError(getErrorMessage(e, 'Could not update fee status'));
     }
   }
